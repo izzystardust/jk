@@ -1,0 +1,73 @@
+On the Design of jk
+===================
+
+This document exists to hold thoughts on the way jk will work, and on the way jk
+will be implemented.
+
+Notation
+--------
+
+In this document, the following conventions are used:
+
+- The key labeled x will be written as <x>.
+- Using modifiers at the same time as a key will be written as <X-x>, where X is
+  the modifier used and x is the key pressed.
+- The modifier C is control, M is alt, and S is shift.
+
+User Interface
+--------------
+
+jk is primarily inspired by Bill Joy's vi and Rob Pike's acme. From vi, I take
+modality and will provide a selection of commands that are generally useful in
+editing all files. From acme, I take the concept of using the text in the user
+interface as the command language of the editor.
+
+jk's modes will include a normal mode, an insert mode, a visual mode, and a
+command mode. Each mode in jk is responsible for recieving input events and
+turning them into the appropriate action. Normal, insert, and visual modes will
+feel familiar to vi users. Command mode feel more familiar to acme users.
+
+As an example of modes, in normal, visual, and command mode, <h>, <j>, <k>, and
+<l> are used to move the cursor left, up, right, and down, respectively. In
+insert mode, however, these keys insert those letters at the cursor instead. In
+normal mode, <L> might move the cursor to the bottom of the screen, while in
+command mode, <L> might send the waiting command the current line as its
+argument.
+
+The keybindings used in the modes may be inspired by vi, but being vi compatible
+is not a goal of this project.
+
+Even in vi, the full power of the editor is not accessible through the keyboard.
+While vi provides ex commands to fill this void, jk provides command mode.
+Similarly to Plan 9's acme, any text in jk can be executed as a command.
+Following the convention of acme, all commands provided by the editor are
+written in title case, such as "Format" or "Save".
+
+In normal mode, pressing <|> executes the word under the cursor as a command. If
+that command expects arguments, command mode is entered. In visual mode, <|>
+will do something with the selected region.
+
+When a command is run, jk will resolve it by searching first run built-in
+commands, then falling back to the user's PATH. For example, if the cursor is on
+the word date and the user presses <|>, since there is no built-in Date command,
+the command date will run and the results will be placed in a new buffer.
+
+A Preliminary List of Built In Commands
+---------------------------------------
+
+- New: Creates a new buffer.
+- Save: writes the buffer to disk.
+- Save-As name: writes the buffer to disk with name name.
+- Quit: Exits jk. If modified buffers exist, must be run twice to exit.
+- Bind-Key-In-Mode: Binds a key to a command in a mode.
+
+Implementation
+--------------
+
+No keybindings will be hardcoded in jk. Instead, the command `Bind-Key-In-Mode
+key mode command` will cause jk to execute command when key is pressed in mode.
+
+It is not a goal of jk at this time to provide emacs-style extension - namely,
+there will be no way to rebind or add internal commands to jk at runtime. This
+leaves two modes of extension: Modifying the source of jk, or writing commands
+that work with jk.
