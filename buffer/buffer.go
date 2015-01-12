@@ -29,7 +29,7 @@ type Line struct {
 
 type SmallFileBuffer struct {
 	Filename string
-	contents []byte
+	Contents []byte
 }
 
 func BufferizeFile(filename string) (*SmallFileBuffer, error) {
@@ -39,6 +39,6 @@ func BufferizeFile(filename string) (*SmallFileBuffer, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.contents = contents
+	a.Contents = contents
 	return a, nil
 }

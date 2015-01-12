@@ -1,5 +1,5 @@
-[ ] Load file
-[ ] Display a single buffer containing a file
+[x] Load file
+[-] Display a single buffer containing a file
 [ ] Multiple file buffers.
 [ ] Basic editing
 [ ] Finalize design
