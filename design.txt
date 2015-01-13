@@ -52,6 +52,11 @@ commands, then falling back to the user's PATH. For example, if the cursor is on
 the word date and the user presses <|>, since there is no built-in Date command,
 the command date will run and the results will be placed in a new buffer.
 
+Commands can also be given directives that will be familiar to users of acme and
+sh redirection: A command prefixed with | (as in `|date`) will recieve the
+current selection as its stdin. A command prefixed with > (as in `>date`) will
+send the output of the command to the active buffer at the cursor.
+
 A Preliminary List of Built In Commands
 ---------------------------------------
 
