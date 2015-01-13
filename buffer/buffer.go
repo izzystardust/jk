@@ -6,15 +6,18 @@
 package buffer
 
 import (
-	"io"
 	"io/ioutil"
+
+	"github.com/nsf/termbox-go"
 )
 
 type View interface {
-	ByteAtOffset(n int)
-	SetReadOffset(n int)
-	io.Reader
-	io.ReaderAt
+	ByteAtOffset(n int) byte
+	DrawAt(x int, y int, w int, h int)
+}
+
+func New(file string) (View, error) {
+	return BufferizeFile(file)
 }
 
 type Buffer struct {
@@ -24,12 +27,13 @@ type Buffer struct {
 type Line struct {
 	prev     *Line
 	next     *Line
-	contents []byte
+	Contents []byte
 }
 
 type SmallFileBuffer struct {
-	Filename string
-	Contents []byte
+	Filename  string
+	FirstLine *Line
+	LastLine  *Line
 }
 
 func BufferizeFile(filename string) (*SmallFileBuffer, error) {
@@ -39,6 +43,37 @@ func BufferizeFile(filename string) (*SmallFileBuffer, error) {
 	if err != nil {
 		return nil, err
 	}
-	a.Contents = contents
+	startOfTokenIndex := 0
+	currentLine := new(Line)
+	a.FirstLine = currentLine
+	for i, c := range contents {
+		if c == '\n' {
+			currentLine.Contents = contents[startOfTokenIndex : i+1]
+			startOfTokenIndex = i + 1
+			nextLine := new(Line)
+			currentLine.next = nextLine
+			nextLine.prev = currentLine
+			currentLine = nextLine
+		}
+	}
+	a.LastLine = currentLine
 	return a, nil
+}
+
+func (a *SmallFileBuffer) ByteAtOffset(n int) byte { return 'a' }
+
+func (b *SmallFileBuffer) DrawAt(x int, y int, w int, h int) {
+	currentLine := b.FirstLine
+	for yi := 0; yi < h; yi++ {
+		for xi, c := range string(currentLine.Contents) {
+			if xi >= w {
+				break
+			}
+			termbox.SetCell(x+xi, y+yi, c, termbox.ColorDefault, termbox.ColorDefault)
+		}
+		currentLine = currentLine.next
+		if currentLine == nil {
+			break
+		}
+	}
 }

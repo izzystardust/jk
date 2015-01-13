@@ -14,30 +14,21 @@ import (
 
 func main() {
 
-	termbox.Init()
-	defer termbox.Close()
-
-	for i, c := range os.Args[0] {
-		termbox.SetCell(i, 0, c, termbox.ColorDefault, termbox.ColorDefault)
-	}
-
-	buffer, err := buffer.BufferizeFile(os.Args[1])
+	err := termbox.Init()
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
+	defer termbox.Close()
 
-	y := 0
-	x := 0
-	for _, c := range string(buffer.Contents) {
-		if c == '\n' {
-			y += 1
-			x = 0
-			continue
-		}
-		termbox.SetCell(x, y, c, termbox.ColorDefault, termbox.ColorDefault)
-		x += 1
+	b, err := buffer.New(os.Args[1])
+	if err != nil {
+		termbox.Close()
+		fmt.Println(err)
+		return
 	}
+	xDim, yDim := termbox.Size()
+	b.DrawAt(1, 1, xDim-2, yDim-2)
 
 	for {
 		termbox.Flush()
@@ -47,5 +38,4 @@ func main() {
 			return
 		}
 	}
-	fmt.Println(buffer.Filename, len(buffer.Contents))
 }
