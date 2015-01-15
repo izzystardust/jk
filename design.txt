@@ -57,6 +57,15 @@ sh redirection: A command prefixed with | (as in `|date`) will recieve the
 current selection as its stdin. A command prefixed with > (as in `>date`) will
 send the output of the command to the active buffer at the cursor.
 
+Each displayed buffer will have two parts: The buffer contents, and the "tag".
+The buffer contents are relatively self explanatory; the tag (which is just
+another editable buffer) contains a selection of relevant commands that work on
+the contents, such as Save.
+
+There is one other special buffer: The messages buffer, which appears at the
+bottom of the screen to notify of condition changes (like buffers opening in the
+background or errors occuring when reading files).
+
 A Preliminary List of Built In Commands
 ---------------------------------------
 
