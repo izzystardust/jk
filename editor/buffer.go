@@ -12,7 +12,6 @@ import (
 )
 
 type View interface {
-	ByteAtOffset(n int) byte
 	DrawAt(x int, y int, w int, h int)
 	Scroll(by int)
 }
@@ -62,8 +61,6 @@ func BufferizeFile(filename string) (*SmallFileBuffer, error) {
 	a.LastLine = currentLine
 	return a, nil
 }
-
-func (a *SmallFileBuffer) ByteAtOffset(n int) byte { return 'a' }
 
 func ClearBox(x int, y int, w int, h int) {
 	for yi := 0; yi < h; yi++ {
