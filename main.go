@@ -28,14 +28,18 @@ func main() {
 		return
 	}
 	xDim, yDim := termbox.Size()
-	b.DrawAt(1, 1, xDim-2, yDim-2)
 
 	for {
+		b.DrawAt(1, 1, xDim-2, yDim-2)
 		termbox.Flush()
 		e := termbox.PollEvent()
 		switch {
 		case e.Key == termbox.KeyEsc:
 			return
+		case e.Key == termbox.KeyArrowDown:
+			b.Scroll(1)
+		case e.Key == termbox.KeyArrowUp:
+			b.Scroll(-1)
 		}
 	}
 }

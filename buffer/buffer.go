@@ -14,6 +14,7 @@ import (
 type View interface {
 	ByteAtOffset(n int) byte
 	DrawAt(x int, y int, w int, h int)
+	Scroll(by int)
 }
 
 func New(file string) (View, error) {
@@ -31,9 +32,10 @@ type Line struct {
 }
 
 type SmallFileBuffer struct {
-	Filename  string
-	FirstLine *Line
-	LastLine  *Line
+	Filename    string
+	FirstLine   *Line
+	CurrentLine *Line
+	LastLine    *Line
 }
 
 func BufferizeFile(filename string) (*SmallFileBuffer, error) {
@@ -46,6 +48,7 @@ func BufferizeFile(filename string) (*SmallFileBuffer, error) {
 	startOfTokenIndex := 0
 	currentLine := new(Line)
 	a.FirstLine = currentLine
+	a.CurrentLine = currentLine
 	for i, c := range contents {
 		if c == '\n' {
 			currentLine.Contents = contents[startOfTokenIndex : i+1]
@@ -62,8 +65,17 @@ func BufferizeFile(filename string) (*SmallFileBuffer, error) {
 
 func (a *SmallFileBuffer) ByteAtOffset(n int) byte { return 'a' }
 
+func ClearBox(x int, y int, w int, h int) {
+	for yi := 0; yi < h; yi++ {
+		for xi := 0; xi < w; xi++ {
+			termbox.SetCell(x+xi, y+yi, ' ', termbox.ColorDefault, termbox.ColorDefault)
+		}
+	}
+}
+
 func (b *SmallFileBuffer) DrawAt(x int, y int, w int, h int) {
-	currentLine := b.FirstLine
+	ClearBox(x, y, w, h)
+	currentLine := b.CurrentLine
 	for yi := 0; yi < h; yi++ {
 		for xi, c := range string(currentLine.Contents) {
 			if xi >= w {
@@ -74,6 +86,26 @@ func (b *SmallFileBuffer) DrawAt(x int, y int, w int, h int) {
 		currentLine = currentLine.next
 		if currentLine == nil {
 			break
+		}
+	}
+}
+
+func (b *SmallFileBuffer) Scroll(by int) {
+	if by > 0 {
+		for by > 0 {
+			if b.CurrentLine.next == nil {
+				break
+			}
+			b.CurrentLine = b.CurrentLine.next
+			by--
+		}
+	} else if by < 0 {
+		for by < 0 {
+			if b.CurrentLine.prev == nil {
+				break
+			}
+			b.CurrentLine = b.CurrentLine.prev
+			by++
 		}
 	}
 }
