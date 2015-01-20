@@ -3,7 +3,7 @@
 // license that can be found in the LICENSE file.
 
 // package buffer implements buffers representing views into a piece of text.
-package buffer
+package editor
 
 import (
 	"io/ioutil"

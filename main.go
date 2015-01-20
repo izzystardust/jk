@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/millere/jk/buffer"
+	"github.com/millere/jk/editor"
 	"github.com/nsf/termbox-go"
 )
 
@@ -21,7 +21,7 @@ func main() {
 	}
 	defer termbox.Close()
 
-	b, err := buffer.New(os.Args[1])
+	b, err := editor.New(os.Args[1])
 	if err != nil {
 		termbox.Close()
 		fmt.Println(err)
