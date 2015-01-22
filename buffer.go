@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package buffer implements buffers representing views into a piece of text.
-package editor
+// package jk implements buffers representing views into a piece of text.
+package jk
 
 import (
 	"io/ioutil"
@@ -74,11 +74,17 @@ func (b *SmallFileBuffer) DrawAt(x int, y int, w int, h int) {
 	ClearBox(x, y, w, h)
 	currentLine := b.CurrentLine
 	for yi := 0; yi < h; yi++ {
+		offset := 0
 		for xi, c := range string(currentLine.Contents) {
 			if xi >= w {
 				break
 			}
-			termbox.SetCell(x+xi, y+yi, c, termbox.ColorDefault, termbox.ColorDefault)
+			if c != '\t' {
+				termbox.SetCell(x+xi+offset, y+yi, c, termbox.ColorDefault, termbox.ColorDefault)
+			} else {
+				offset += 4
+			}
+
 		}
 		currentLine = currentLine.next
 		if currentLine == nil {
