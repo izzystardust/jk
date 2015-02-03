@@ -40,9 +40,17 @@ func main() {
 		case e.Key == termbox.KeyEsc:
 			return
 		case e.Key == termbox.KeyArrowDown:
-			view.CurrentLine += 1
+			view.FirstLine += 1
 		case e.Key == termbox.KeyArrowUp:
-			view.CurrentLine -= 1
+			view.FirstLine -= 1
+		case e.Ch == 'h':
+			view.C.X -= 1
+		case e.Ch == 'j':
+			view.C.Y += 1
+		case e.Ch == 'k':
+			view.C.Y -= 1
+		case e.Ch == 'l':
+			view.C.X += 1
 		}
 	}
 }
