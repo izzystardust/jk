@@ -6,22 +6,19 @@
 package jk
 
 import (
+	"fmt"
 	"io/ioutil"
 
 	"github.com/nsf/termbox-go"
 )
 
-type View interface {
+type Buffer interface {
+	GetLine(lineno int) (*Line, error)
+}
+
+type Drawer interface {
 	DrawAt(x int, y int, w int, h int)
 	Scroll(by int)
-}
-
-func New(file string) (View, error) {
-	return BufferizeFile(file)
-}
-
-type Buffer struct {
-	Contents View
 }
 
 type Line struct {
@@ -37,7 +34,7 @@ type SmallFileBuffer struct {
 	LastLine    *Line
 }
 
-func BufferizeFile(filename string) (*SmallFileBuffer, error) {
+func BufferizeFile(filename string) (Buffer, error) {
 	a := new(SmallFileBuffer)
 	a.Filename = filename
 	contents, err := ioutil.ReadFile(filename)
@@ -70,45 +67,17 @@ func ClearBox(x int, y int, w int, h int) {
 	}
 }
 
-func (b *SmallFileBuffer) DrawAt(x int, y int, w int, h int) {
-	ClearBox(x, y, w, h)
-	currentLine := b.CurrentLine
-	for yi := 0; yi < h; yi++ {
-		offset := 0
-		for xi, c := range string(currentLine.Contents) {
-			if xi >= w {
-				break
-			}
-			if c != '\t' {
-				termbox.SetCell(x+xi+offset, y+yi, c, termbox.ColorDefault, termbox.ColorDefault)
-			} else {
-				offset += 4
-			}
-
+func (a *SmallFileBuffer) GetLine(x int) (*Line, error) {
+	currentLine := a.FirstLine
+	i := 1
+	for {
+		if x == i {
+			return currentLine, nil
 		}
 		currentLine = currentLine.next
+		i += 1
 		if currentLine == nil {
-			break
-		}
-	}
-}
-
-func (b *SmallFileBuffer) Scroll(by int) {
-	if by > 0 {
-		for by > 0 {
-			if b.CurrentLine.next == nil {
-				break
-			}
-			b.CurrentLine = b.CurrentLine.next
-			by--
-		}
-	} else if by < 0 {
-		for by < 0 {
-			if b.CurrentLine.prev == nil {
-				break
-			}
-			b.CurrentLine = b.CurrentLine.prev
-			by++
+			return nil, fmt.Errorf("line %d does not exist", x)
 		}
 	}
 }

@@ -21,25 +21,28 @@ func main() {
 	}
 	defer termbox.Close()
 
-	b, err := jk.New(os.Args[1])
+	b, err := jk.BufferizeFile(os.Args[1])
 	if err != nil {
 		termbox.Close()
 		fmt.Println(err)
 		return
 	}
+
 	xDim, yDim := termbox.Size()
 
+	view := jk.ViewWithBuffer(b, 1, 1, xDim-2, yDim-2)
+
 	for {
-		b.DrawAt(1, 1, xDim-2, yDim-2)
+		view.Draw()
 		termbox.Flush()
 		e := termbox.PollEvent()
 		switch {
 		case e.Key == termbox.KeyEsc:
 			return
 		case e.Key == termbox.KeyArrowDown:
-			b.Scroll(1)
+			view.CurrentLine += 1
 		case e.Key == termbox.KeyArrowUp:
-			b.Scroll(-1)
+			view.CurrentLine -= 1
 		}
 	}
 }
