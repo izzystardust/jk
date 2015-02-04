@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/millere/jk"
+	"github.com/millere/jk/editor"
 	"github.com/nsf/termbox-go"
 )
 
