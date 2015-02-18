@@ -4,11 +4,39 @@
 
 package jk
 
-import "github.com/nsf/termbox-go"
+import (
+	"errors"
 
-// a Mode maps terminal events to
-type Mode map[termbox.Event]CommandFunc
+	"github.com/millere/jk/keys"
+)
 
-// a CommandFunc takes the cursor position in a given view and changes the view
-// or its corresponding buffer accordingly.
-type CommandFunc func(x, y int, view *View, argument string, count int) error
+type ModeFunc func(v *View, count int) error
+
+type Mode struct {
+	Name     string
+	OnEnter  func(v *View) error
+	OnExit   func(v *View) error
+	EventMap map[keys.Keypress]ModeFunc
+}
+
+func Normal() Mode {
+	m := make(map[keys.Keypress]ModeFunc)
+	m[keys.Keypress{Key: 'h'}] = func(v *View, count int) error {
+		v.C.X -= 1
+		return nil
+	}
+	m[keys.Keypress{Key: 'j'}] = func(v *View, count int) error {
+		v.C.Y += 1
+		return nil
+	}
+	m[keys.Keypress{Key: keys.Esc}] = func(v *View, count int) error {
+		return errors.New("Should quit")
+	}
+
+	return Mode{
+		Name:     "normal",
+		OnEnter:  nil,
+		OnExit:   nil,
+		EventMap: m,
+	}
+}

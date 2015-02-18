@@ -9,6 +9,7 @@ import (
 	"os"
 
 	"github.com/millere/jk/editor"
+	"github.com/millere/jk/keys"
 	"github.com/nsf/termbox-go"
 )
 
@@ -21,7 +22,7 @@ func main() {
 	}
 	defer termbox.Close()
 
-	b, err := jk.BufferizeFile(os.Args[1])
+	buffer, err := jk.BufferizeFile(os.Args[1])
 	if err != nil {
 		termbox.Close()
 		fmt.Println(err)
@@ -30,27 +31,16 @@ func main() {
 
 	xDim, yDim := termbox.Size()
 
-	view := jk.ViewWithBuffer(b, 1, 1, xDim-2, yDim-2)
+	view := jk.ViewWithBuffer(buffer, jk.Normal(), 1, 1, xDim-2, yDim-2)
 
 	for {
 		view.Draw()
 		termbox.Flush()
 		e := termbox.PollEvent()
-		switch {
-		case e.Key == termbox.KeyEsc:
+		k := keys.FromTermbox(e)
+		err := view.Do(k)
+		if err != nil {
 			return
-		case e.Key == termbox.KeyArrowDown:
-			view.FirstLine += 1
-		case e.Key == termbox.KeyArrowUp:
-			view.FirstLine -= 1
-		case e.Ch == 'h':
-			view.C.X -= 1
-		case e.Ch == 'j':
-			view.C.Y += 1
-		case e.Ch == 'k':
-			view.C.Y -= 1
-		case e.Ch == 'l':
-			view.C.X += 1
 		}
 	}
 }
