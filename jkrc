@@ -1,0 +1,2 @@
+(register-mode "normal")
+(bind-key-in-mode "j" "normal" #CursorDown)

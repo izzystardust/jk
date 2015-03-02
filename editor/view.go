@@ -5,6 +5,8 @@
 package jk
 
 import (
+	"fmt"
+
 	"github.com/millere/jk/keys"
 	"github.com/nsf/termbox-go"
 )
@@ -15,7 +17,7 @@ type View struct {
 	FirstLine int    // index of the first line
 	back      Buffer // the backing buffer being displayed
 	C         Cursor
-	mode      Mode
+	mode      *Mode
 }
 
 type Cursor struct {
@@ -23,7 +25,11 @@ type Cursor struct {
 	color termbox.Attribute
 }
 
-func ViewWithBuffer(a Buffer, m Mode, x, y, w, h int) View {
+func ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error) {
+	mode, ok := modes[m]
+	if !ok {
+		return View{}, fmt.Errorf("Mode \"%v\" does not exist", m)
+	}
 	return View{
 		x:         x,
 		y:         y,
@@ -36,8 +42,8 @@ func ViewWithBuffer(a Buffer, m Mode, x, y, w, h int) View {
 			Y:     0,
 			color: termbox.ColorRed,
 		},
-		mode: m,
-	}
+		mode: mode,
+	}, nil
 }
 
 func (a *View) Draw() {
@@ -68,7 +74,7 @@ func (a *View) Draw() {
 	termbox.SetCursor(a.x+a.C.X, a.y+a.C.Y) // context required for humor.
 }
 
-func (a *View) SetMode(m Mode) {
+func (a *View) SetMode(m *Mode) {
 	if a.mode.OnExit != nil {
 		a.mode.OnExit(a)
 	}

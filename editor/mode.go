@@ -12,8 +12,9 @@ import (
 
 type ModeFunc func(v *View, count int) error
 
+var modes map[string]*Mode
+
 type Mode struct {
-	Name     string
 	OnEnter  func(v *View) error
 	OnExit   func(v *View) error
 	EventMap map[keys.Keypress]ModeFunc
@@ -34,9 +35,15 @@ func Normal() Mode {
 	}
 
 	return Mode{
-		Name:     "normal",
 		OnEnter:  nil,
 		OnExit:   nil,
 		EventMap: m,
 	}
+}
+
+func RegisterMode(name string, mode Mode) {
+	if modes == nil {
+		modes = make(map[string]*Mode)
+	}
+	modes[name] = &mode
 }

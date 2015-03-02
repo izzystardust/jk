@@ -22,23 +22,17 @@ func main() {
 	}
 	defer termbox.Close()
 
-	buffer, err := jk.BufferizeFile(os.Args[1])
-	if err != nil {
-		termbox.Close()
-		fmt.Println(err)
-		return
-	}
+	editor := jk.New()
+	err = editor.AddFile(os.Args[1])
 
-	xDim, yDim := termbox.Size()
-
-	view := jk.ViewWithBuffer(buffer, jk.Normal(), 1, 1, xDim-2, yDim-2)
+	jk.RegisterMode("normal", jk.Normal())
 
 	for {
-		view.Draw()
+		editor.Draw()
 		termbox.Flush()
 		e := termbox.PollEvent()
 		k := keys.FromTermbox(e)
-		err := view.Do(k)
+		err := editor.Do(k)
 		if err != nil {
 			return
 		}
