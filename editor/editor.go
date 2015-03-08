@@ -2,9 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package jk
+package editor
 
 import (
+	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -19,7 +20,7 @@ var (
 type Editor struct {
 	views          []*View
 	currentView    *View
-	modes          map[string]Mode
+	modes          map[string]*Mode
 	editorCommands map[string]EditorFunc
 	viewCommands   map[string]ModeFunc
 	log            *log.Logger
@@ -27,9 +28,11 @@ type Editor struct {
 
 func New() *Editor {
 	e := new(Editor)
+	e.modes = make(map[string]*Mode)
 
 	e.buildStandardFuncs()
 	e.AddLogFile("log.txt")
+	e.Log("Created new editor")
 
 	return e
 }
@@ -42,15 +45,21 @@ func (e *Editor) Draw() {
 }
 
 func (e *Editor) Do(k keys.Keypress) error {
+	e.Log("Going to do", k)
+	if e.currentView == nil {
+		e.Log("currentView is nil")
+		return errors.New("currentView is nil")
+	}
 	return e.currentView.Do(k)
 }
 
 func (e *Editor) AddFile(filename string) error {
+	e.Log("Adding file:", filename)
 	buffer, err := BufferizeFile(filename)
 	if err != nil {
 		return err
 	}
-	view, err := ViewWithBuffer(buffer, "normal", 1, 1, 80, 80)
+	view, err := e.ViewWithBuffer(buffer, "normal", 1, 1, 80, 80)
 	if err != nil {
 		return err
 	}

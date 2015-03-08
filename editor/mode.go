@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package jk
+package editor
 
 import (
 	"errors"
@@ -11,8 +11,6 @@ import (
 )
 
 type ModeFunc func(v *View, count int) error
-
-var modes map[string]*Mode
 
 type Mode struct {
 	OnEnter  func(v *View) error
@@ -41,9 +39,12 @@ func Normal() Mode {
 	}
 }
 
-func RegisterMode(name string, mode Mode) {
-	if modes == nil {
-		modes = make(map[string]*Mode)
+func (e *Editor) RegisterMode(name string, mode Mode) {
+	e.Log("Adding mode:", name)
+	e.modes[name] = &mode
+	var modes string
+	for k, _ := range e.modes {
+		modes = k + " "
 	}
-	modes[name] = &mode
+	e.Log("Modes:", modes)
 }

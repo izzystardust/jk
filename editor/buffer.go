@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package jk implements buffers representing views into a piece of text.
-package jk
+// package editor implements buffers representing views into a piece of text.
+package editor
 
 import (
 	"fmt"

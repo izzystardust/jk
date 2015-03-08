@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package jk
+package editor
 
 import (
 	"fmt"
@@ -25,8 +25,8 @@ type Cursor struct {
 	color termbox.Attribute
 }
 
-func ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error) {
-	mode, ok := modes[m]
+func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error) {
+	mode, ok := e.modes[m]
 	if !ok {
 		return View{}, fmt.Errorf("Mode \"%v\" does not exist", m)
 	}

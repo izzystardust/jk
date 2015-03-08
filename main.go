@@ -22,17 +22,22 @@ func main() {
 	}
 	defer termbox.Close()
 
-	editor := jk.New()
-	err = editor.AddFile(os.Args[1])
+	e := editor.New()
 
-	jk.RegisterMode("normal", jk.Normal())
+	e.RegisterMode("normal", editor.Normal())
+
+	err = e.AddFile(os.Args[1])
+	if err != nil {
+		e.Log(err)
+		return
+	}
 
 	for {
-		editor.Draw()
+		e.Draw()
 		termbox.Flush()
-		e := termbox.PollEvent()
-		k := keys.FromTermbox(e)
-		err := editor.Do(k)
+		v := termbox.PollEvent()
+		k := keys.FromTermbox(v)
+		err := e.Do(k)
 		if err != nil {
 			return
 		}

@@ -1,4 +1,4 @@
-package jk
+package editor
 
 import (
 	"errors"
