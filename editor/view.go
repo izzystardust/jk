@@ -21,8 +21,8 @@ type View struct {
 }
 
 type Cursor struct {
-	X, Y  int
-	color termbox.Attribute
+	Line, Column int
+	color        termbox.Attribute
 }
 
 func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error) {
@@ -38,9 +38,9 @@ func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error
 		back:      a,
 		FirstLine: 1,
 		C: Cursor{
-			X:     0,
-			Y:     0,
-			color: termbox.ColorRed,
+			Line:   1,
+			Column: 1,
+			color:  termbox.ColorRed,
 		},
 		mode: mode,
 	}, nil
@@ -71,7 +71,39 @@ func (a *View) Draw() {
 			break
 		}
 	}
-	termbox.SetCursor(a.x+a.C.X, a.y+a.C.Y) // context required for humor.
+	termbox.SetCursor(a.x+a.C.Column-1, a.y+a.C.Line-1) // context required for humor.
+}
+
+// sets the cursor to absolute coordinates in the file
+func (a *View) SetCursor(column, row int) {
+	target, err := a.back.GetLine(row)
+	_ = target
+	if err != nil {
+		return
+	}
+
+	if inBounds(0, 0, len(target.Contents), a.back.Lines(), column, row) {
+		a.C.Line = row
+		a.C.Column = column
+	} else if len(target.Contents) >= len(target.Contents) {
+		a.C.Line = row
+		a.C.Column = len(target.Contents)
+	} else {
+		LogItAll.Printf("Position (%d, %d) out of bounds (%d, %d, %d, %d)\n",
+			column-1, row-1,
+			0, 0,
+			len(target.Contents), a.back.Lines(),
+		)
+	}
+}
+
+// moves the cursor relative to where it is now
+func (a *View) MoveCursor(dc, dr int) {
+	a.SetCursor(a.C.Column+dc, a.C.Line+dr)
+}
+
+func inBounds(x, y, w, h, ax, ay int) bool {
+	return ax >= x && ax < w && ay >= y && ay < h
 }
 
 func (a *View) SetMode(m *Mode) {

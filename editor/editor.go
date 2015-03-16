@@ -13,9 +13,7 @@ import (
 	"github.com/millere/jk/keys"
 )
 
-var (
-	Tabstop = 4
-)
+var LogItAll *log.Logger
 
 type Editor struct {
 	views          []*View
@@ -24,6 +22,7 @@ type Editor struct {
 	editorCommands map[string]EditorFunc
 	viewCommands   map[string]ModeFunc
 	log            *log.Logger
+	settings       map[string]int
 }
 
 func New() *Editor {
@@ -31,7 +30,9 @@ func New() *Editor {
 	e.modes = make(map[string]*Mode)
 
 	e.buildStandardFuncs()
+	e.setStandardSettings()
 	e.AddLogFile("log.txt")
+	LogItAll = e.log
 	e.Log("Created new editor")
 
 	return e
@@ -45,7 +46,7 @@ func (e *Editor) Draw() {
 }
 
 func (e *Editor) Do(k keys.Keypress) error {
-	e.Log("Going to do", k)
+	//e.Log("Going to do", k)
 	if e.currentView == nil {
 		e.Log("currentView is nil")
 		return errors.New("currentView is nil")
@@ -99,5 +100,11 @@ func (e *Editor) buildStandardFuncs() {
 
 		e.log.Println(m)
 		return nil
+	}
+}
+
+func (e *Editor) setStandardSettings() {
+	e.settings = map[string]int{
+		"tabstop": 8,
 	}
 }

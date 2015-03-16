@@ -21,11 +21,19 @@ type Mode struct {
 func Normal() Mode {
 	m := make(map[keys.Keypress]ModeFunc)
 	m[keys.Keypress{Key: 'h'}] = func(v *View, count int) error {
-		v.C.X -= 1
+		v.MoveCursor(-1, 0)
 		return nil
 	}
 	m[keys.Keypress{Key: 'j'}] = func(v *View, count int) error {
-		v.C.Y += 1
+		v.MoveCursor(0, 1)
+		return nil
+	}
+	m[keys.Keypress{Key: 'k'}] = func(v *View, count int) error {
+		v.MoveCursor(0, -1)
+		return nil
+	}
+	m[keys.Keypress{Key: 'l'}] = func(v *View, count int) error {
+		v.MoveCursor(1, 0)
 		return nil
 	}
 	m[keys.Keypress{Key: keys.Esc}] = func(v *View, count int) error {

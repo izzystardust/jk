@@ -14,6 +14,7 @@ import (
 
 type Buffer interface {
 	GetLine(lineno int) (*Line, error)
+	Lines() int
 }
 
 type Drawer interface {
@@ -57,6 +58,15 @@ func BufferizeFile(filename string) (Buffer, error) {
 	}
 	a.LastLine = currentLine
 	return a, nil
+}
+
+// expensive
+func (b *SmallFileBuffer) Lines() int {
+	i := 0
+	for l := b.FirstLine; l != b.LastLine; i++ {
+		l = l.next
+	}
+	return i + 1
 }
 
 func ClearBox(x int, y int, w int, h int) {
