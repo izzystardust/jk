@@ -6,6 +6,7 @@ package editor
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/millere/jk/keys"
 	"github.com/nsf/termbox-go"
@@ -71,7 +72,12 @@ func (a *View) Draw() {
 			break
 		}
 	}
-	termbox.SetCursor(a.x+a.C.Column-1, a.y+a.C.Line-1) // context required for humor.
+	cursorLine, err := a.back.GetLine(a.C.Line)
+	if err != nil {
+		panic(err)
+	}
+	tabsAtCursor := strings.Count(string(cursorLine.Contents[:a.C.Column-1]), "\t")
+	termbox.SetCursor(a.x+a.C.Column-1+4*tabsAtCursor, a.y+a.C.Line-1) // context required for humor.
 }
 
 // sets the cursor to absolute coordinates in the file
