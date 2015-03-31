@@ -11,7 +11,11 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+//go:generate stringer -type=Modifier
 type Modifier byte
+
+//go:generate stringer -type=Key
+type Key rune
 
 const (
 	Shift Modifier = 1 << iota
@@ -22,12 +26,12 @@ const (
 // a Key represents a keypress event
 type Keypress struct {
 	Mod Modifier
-	Key rune
+	Key Key
 }
 
 // These constants represent nonprinting keys on the keyboard
 const (
-	F1 = utf8.MaxRune + iota
+	F1 Key = utf8.MaxRune + iota
 	F2
 	F3
 	F4
@@ -66,7 +70,7 @@ func FromTermbox(e termbox.Event) Keypress {
 	}
 
 	if e.Ch != 0 {
-		k.Key = e.Ch
+		k.Key = Key(e.Ch)
 	} else {
 		switch e.Key {
 		case termbox.KeyF1:
