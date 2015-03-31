@@ -67,10 +67,10 @@ func Insert() Mode {
 	}
 
 	for _, c := range insertable {
-		cc := c
+		cc := keys.Key(c)
 		m[keys.Keypress{Key: cc}] = func(v *View, count int) error {
 			for i := 0; i < count; i++ {
-				v.InsertChar(cc)
+				v.InsertChar(rune(cc))
 				v.MoveCursor(1, 0)
 			}
 			return nil
