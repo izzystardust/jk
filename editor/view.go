@@ -131,6 +131,7 @@ func (a *View) Do(k keys.Keypress) error {
 	if ok {
 		return f(a, 1)
 	} else {
+		LogItAll.Printf("No function bound to key %#v", k)
 		return nil
 	}
 }
