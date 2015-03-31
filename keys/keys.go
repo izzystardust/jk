@@ -53,7 +53,6 @@ const (
 	Tab
 	Enter
 	Esc
-	Space
 )
 
 // FromTermbox creates a Key from a termbox event
@@ -123,7 +122,7 @@ func FromTermbox(e termbox.Event) Keypress {
 		case termbox.KeyEsc:
 			k.Key = Esc
 		case termbox.KeySpace:
-			k.Key = Space
+			k.Key = 32 // ASCII for the space character - also UTF8 :)
 		case termbox.KeyBackspace2:
 			k.Key = Backspace
 		}
