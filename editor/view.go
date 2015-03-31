@@ -92,12 +92,17 @@ func (a *View) SetCursor(column, row int) {
 		return
 	}
 
-	if inBounds(1, 1, len(target.Contents), a.back.Lines(), column, row) {
+	lc := a.back.Lines()
+	// cursor addressing puts row 1, column 1 as the origin
+	// want to be able to go "one past"
+	if inBounds(1, 1, len(target.Contents)+1, lc, column, row) {
 		a.C.Line = row
 		a.C.Column = column
-	} else if len(target.Contents) >= len(target.Contents) {
+	} else if column >= len(target.Contents)+1 && row >= 1 && row <= lc {
+		// in this case, we're trying to move past the end of the line
+		// or onto a line that is too short for the requested column
 		a.C.Line = row
-		a.C.Column = 1 // len(target.Contents)
+		a.C.Column = len(target.Contents)
 	} else {
 		LogItAll.Printf("Position (%d, %d) out of bounds (%d, %d, %d, %d)\n",
 			column-1, row-1,
