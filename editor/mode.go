@@ -60,11 +60,22 @@ func Insert() Mode {
 		v.SetMode((*v.modes)["normal"])
 		return nil
 	}
-	m[keys.Keypress{Key: 'a'}] = func(v *View, count int) error {
-		for i := 0; i < count; i++ {
-			v.InsertChar('a')
+
+	insertable := []rune{}
+	for c := rune(0x20); c <= 0x7E; c++ {
+		insertable = append(insertable, c)
+	}
+	LogItAll.Println("Adding insertables:", insertable)
+
+	for _, c := range insertable {
+		cc := c
+		m[keys.Keypress{Key: cc}] = func(v *View, count int) error {
+			for i := 0; i < count; i++ {
+				v.InsertChar(cc)
+				v.MoveCursor(1, 0)
+			}
+			return nil
 		}
-		return nil
 	}
 	return Mode{
 		OnEnter:  nil,
