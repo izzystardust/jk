@@ -19,6 +19,7 @@ type View struct {
 	back      Buffer // the backing buffer being displayed
 	C         Cursor
 	mode      *Mode
+	modes     *map[string]*Mode
 }
 
 type Cursor struct {
@@ -43,7 +44,8 @@ func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error
 			Column: 1,
 			color:  termbox.ColorRed,
 		},
-		mode: mode,
+		mode:  mode,
+		modes: &e.modes,
 	}, nil
 }
 
@@ -131,4 +133,12 @@ func (a *View) Do(k keys.Keypress) error {
 	} else {
 		return nil
 	}
+}
+
+func (a *View) InsertChar(n rune) {
+	line, err := a.back.GetLine(a.C.Line)
+	if err != nil {
+		return
+	}
+	line.InsertAt(a.C.Column-1, []byte{byte(n)})
 }

@@ -24,6 +24,7 @@ func main() {
 
 	e := editor.New()
 	e.RegisterMode("normal", editor.Normal())
+	e.RegisterMode("insert", editor.Insert())
 
 	err = e.AddFile(os.Args[1])
 	if err != nil {

@@ -27,22 +27,45 @@ func Normal() Mode {
 		v.MoveCursor(-1, 0)
 		return nil
 	}
-	m[keys.Keypress{Key: 'j'}] = func(v *View, count int) error {
+	m[keys.Keypress{Key: 'n'}] = func(v *View, count int) error {
 		v.MoveCursor(0, 1)
 		return nil
 	}
-	m[keys.Keypress{Key: 'k'}] = func(v *View, count int) error {
+	m[keys.Keypress{Key: 'e'}] = func(v *View, count int) error {
 		v.MoveCursor(0, -1)
 		return nil
 	}
-	m[keys.Keypress{Key: 'l'}] = func(v *View, count int) error {
+	m[keys.Keypress{Key: 'i'}] = func(v *View, count int) error {
 		v.MoveCursor(1, 0)
 		return nil
 	}
 	m[keys.Keypress{Key: keys.Esc}] = func(v *View, count int) error {
 		return errors.New("Should quit")
 	}
+	m[keys.Keypress{Key: 't'}] = func(v *View, count int) error {
+		v.SetMode((*v.modes)["insert"])
+		return nil
+	}
 
+	return Mode{
+		OnEnter:  nil,
+		OnExit:   nil,
+		EventMap: m,
+	}
+}
+
+func Insert() Mode {
+	m := make(map[keys.Keypress]ModeFunc)
+	m[keys.Keypress{Key: keys.Esc}] = func(v *View, count int) error {
+		v.SetMode((*v.modes)["normal"])
+		return nil
+	}
+	m[keys.Keypress{Key: 'a'}] = func(v *View, count int) error {
+		for i := 0; i < count; i++ {
+			v.InsertChar('a')
+		}
+		return nil
+	}
 	return Mode{
 		OnEnter:  nil,
 		OnExit:   nil,
@@ -54,9 +77,5 @@ func Normal() Mode {
 func (e *Editor) RegisterMode(name string, mode Mode) {
 	e.Log("Adding mode:", name)
 	e.modes[name] = &mode
-	var modes string
-	for k := range e.modes {
-		modes = k + " "
-	}
-	e.Log("Modes:", modes)
+	e.Log("Modes:", e.modes)
 }

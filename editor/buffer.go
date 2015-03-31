@@ -28,6 +28,15 @@ type Line struct {
 	Contents []byte
 }
 
+func (a *Line) InsertAt(offset int, toInsert []byte) {
+	// do this the naive, allocating way
+	// TODO: faster? less memory intensive way?
+
+	a.Contents = append(
+		a.Contents[:offset],
+		append(toInsert, a.Contents[offset:]...)...)
+}
+
 type SmallFileBuffer struct {
 	Filename    string
 	FirstLine   *Line
@@ -48,7 +57,8 @@ func BufferizeFile(filename string) (Buffer, error) {
 	a.CurrentLine = currentLine
 	for i, c := range contents {
 		if c == '\n' {
-			currentLine.Contents = contents[startOfTokenIndex : i+1]
+			currentLine.Contents = make([]byte, i+1-startOfTokenIndex)
+			copy(currentLine.Contents, contents[startOfTokenIndex:i+1])
 			startOfTokenIndex = i + 1
 			nextLine := new(Line)
 			currentLine.next = nextLine
