@@ -65,7 +65,6 @@ func Insert() Mode {
 	for c := rune(0x20); c <= 0x7E; c++ {
 		insertable = append(insertable, c)
 	}
-	LogItAll.Println("Adding insertables:", insertable)
 
 	for _, c := range insertable {
 		cc := c
