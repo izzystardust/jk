@@ -23,7 +23,6 @@ func main() {
 	defer termbox.Close()
 
 	e := editor.New()
-
 	e.RegisterMode("normal", editor.Normal())
 
 	err = e.AddFile(os.Args[1])

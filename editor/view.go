@@ -76,24 +76,26 @@ func (a *View) Draw() {
 	if err != nil {
 		panic(err)
 	}
-	tabsAtCursor := strings.Count(string(cursorLine.Contents[:a.C.Column-1]), "\t")
+	var tabsAtCursor int
+	if a.C.Column-1 >= 0 {
+		tabsAtCursor = strings.Count(string(cursorLine.Contents[:a.C.Column-1]), "\t")
+	}
 	termbox.SetCursor(a.x+a.C.Column-1+4*tabsAtCursor, a.y+a.C.Line-1) // context required for humor.
 }
 
 // sets the cursor to absolute coordinates in the file
 func (a *View) SetCursor(column, row int) {
 	target, err := a.back.GetLine(row)
-	_ = target
 	if err != nil {
 		return
 	}
 
-	if inBounds(0, 0, len(target.Contents), a.back.Lines(), column, row) {
+	if inBounds(1, 1, len(target.Contents), a.back.Lines(), column, row) {
 		a.C.Line = row
 		a.C.Column = column
 	} else if len(target.Contents) >= len(target.Contents) {
 		a.C.Line = row
-		a.C.Column = len(target.Contents)
+		a.C.Column = 1 // len(target.Contents)
 	} else {
 		LogItAll.Printf("Position (%d, %d) out of bounds (%d, %d, %d, %d)\n",
 			column-1, row-1,
