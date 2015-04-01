@@ -68,12 +68,28 @@ func Normal(e *Editor) Mode {
 func Insert() Mode {
 	m := make(map[keys.Keypress]ModeFunc)
 	m[keys.Keypress{Key: keys.Esc}] = func(v *View, count int) error {
+		v.MoveCursor(-1, 0)
 		v.SetMode((*v.modes)["normal"])
 		return nil
 	}
 	m[keys.Keypress{Key: keys.Backspace}] = func(v *View, count int) error {
 		v.DeleteBackwards()
 		v.MoveCursor(-1, 0)
+		return nil
+	}
+	m[keys.Keypress{Key: keys.Enter}] = func(v *View, count int) error {
+		l, err := v.back.GetLine(v.C.Line)
+		if err != nil {
+			LogItAll.Println("WTF?", err)
+			return err
+		}
+		newLine := new(Line)
+		newLine.Contents = []byte{'\n'}
+		newLine.prev = l
+		newLine.next = l.next
+		l.next = newLine
+		newLine.next.prev = newLine
+		v.MoveCursor(0, 1)
 		return nil
 	}
 
