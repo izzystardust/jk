@@ -2,7 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// package editor implements buffers representing views into a piece of text.
+// Package editor implements buffers representing views into a piece of text.
 package editor
 
 import (
@@ -13,12 +13,15 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// A Buffer holds text - these methods enable a view to display a buffer
 type Buffer interface {
 	GetLine(lineno int) (*Line, error)
 	Lines() int
 	Save(name string) error
 }
 
+// A Line is a single line in a linked list of lines that compose a buffer.
+// TODO: Think about using other datastructures?
 type Line struct {
 	prev     *Line
 	next     *Line

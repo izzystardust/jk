@@ -57,6 +57,7 @@ func Normal() Mode {
 	}
 }
 
+// Insert builds insert mode :)
 func Insert() Mode {
 	m := make(map[keys.Keypress]ModeFunc)
 	m[keys.Keypress{Key: keys.Esc}] = func(v *View, count int) error {
