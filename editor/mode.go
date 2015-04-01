@@ -78,6 +78,8 @@ func Insert() Mode {
 		return nil
 	}
 	m[keys.Keypress{Key: keys.Enter}] = func(v *View, count int) error {
+		//TODO: make it so I can just use the insertChars method of the
+		//      line to do this for me
 		l, err := v.back.GetLine(v.C.Line)
 		if err != nil {
 			LogItAll.Println("WTF?", err)

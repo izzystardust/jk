@@ -31,6 +31,7 @@ type Line struct {
 func (a *Line) InsertAt(offset int, toInsert []byte) {
 	// do this the naive, allocating way
 	// TODO: faster? less memory intensive way?
+	// TODO: handle inserts with newlines (split toInsert on line breaks, go from there?_
 
 	a.Contents = append(
 		a.Contents[:offset],
