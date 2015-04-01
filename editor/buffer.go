@@ -37,6 +37,19 @@ func (a *Line) InsertAt(offset int, toInsert []byte) {
 		append(toInsert, a.Contents[offset:]...)...)
 }
 
+func (l *Line) DeleteNAt(n int, offset int) {
+	defer func() {
+		if r := recover(); r != nil {
+			LogItAll.Printf("DeleteNAt(%d, %d): %v\n", n, offset, r)
+		}
+	}()
+
+	l.Contents = append(
+		l.Contents[:offset],
+		l.Contents[offset+n:]...,
+	)
+}
+
 type SmallFileBuffer struct {
 	Filename    string
 	FirstLine   *Line

@@ -92,13 +92,15 @@ func (a *View) SetCursor(column, row int) {
 		return
 	}
 
-	lc := a.back.Lines()
 	// cursor addressing puts row 1, column 1 as the origin
+	origin := 1
+
+	lc := a.back.Lines()
 	// want to be able to go "one past"
-	if inBounds(1, 1, len(target.Contents)+1, lc, column, row) {
+	if inBounds(origin, origin, len(target.Contents)+1, lc, column, row) {
 		a.C.Line = row
 		a.C.Column = column
-	} else if column >= len(target.Contents)+1 && row >= 1 && row <= lc {
+	} else if column >= len(target.Contents)+1 && row >= origin && row <= lc {
 		// in this case, we're trying to move past the end of the line
 		// or onto a line that is too short for the requested column
 		a.C.Line = row
@@ -106,8 +108,8 @@ func (a *View) SetCursor(column, row int) {
 	} else {
 		LogItAll.Printf("Position (%d, %d) out of bounds (%d, %d, %d, %d)\n",
 			column-1, row-1,
-			0, 0,
-			len(target.Contents), a.back.Lines(),
+			origin, origin,
+			len(target.Contents)+1, lc,
 		)
 	}
 }
@@ -147,4 +149,12 @@ func (a *View) InsertChar(n rune) {
 		return
 	}
 	line.InsertAt(a.C.Column-1, []byte{byte(n)})
+}
+
+func (a *View) DeleteBackwards() {
+	line, err := a.back.GetLine(a.C.Line)
+	if err != nil {
+		return
+	}
+	line.DeleteNAt(1, a.C.Column-2)
 }

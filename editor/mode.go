@@ -60,6 +60,11 @@ func Insert() Mode {
 		v.SetMode((*v.modes)["normal"])
 		return nil
 	}
+	m[keys.Keypress{Key: keys.Backspace}] = func(v *View, count int) error {
+		v.DeleteBackwards()
+		v.MoveCursor(-1, 0)
+		return nil
+	}
 
 	insertable := []rune{}
 	for c := rune(0x20); c <= 0x7E; c++ {
