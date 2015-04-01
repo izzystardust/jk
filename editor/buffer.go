@@ -6,6 +6,7 @@
 package editor
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,10 +33,18 @@ func (a *Line) InsertAt(offset int, toInsert []byte) {
 	// do this the naive, allocating way
 	// TODO: faster? less memory intensive way?
 	// TODO: handle inserts with newlines (split toInsert on line breaks, go from there?_
+	splitOnNewlines := bytes.SplitAfter(toInsert, []byte{'\n'})
 
-	a.Contents = append(
-		a.Contents[:offset],
-		append(toInsert, a.Contents[offset:]...)...)
+	for _, val := range splitOnNewlines {
+		//	before := a.Contents[:offset]
+		//	after := make([]byte, len(a.Contents[offset:]))
+		//	copy(after, a.Contents[offset:])
+		if len(val) > 0 && val[len(val)-1] == '\n' {
+			// need to split line
+			l := a.SplitAt(offset)
+			_ = l
+		}
+	}
 }
 
 func (l *Line) DeleteNAt(n int, offset int) {
@@ -49,6 +58,19 @@ func (l *Line) DeleteNAt(n int, offset int) {
 		l.Contents[:offset],
 		l.Contents[offset+n:]...,
 	)
+}
+
+func (l *Line) SplitAt(offset int) *Line {
+	t := new(Line)
+	t.next = l.next
+	t.prev = l
+	t.next.prev = t
+	l.next = t
+
+	t.Contents = make([]byte, len(l.Contents[offset:]))
+	copy(t.Contents, l.Contents[offset:])
+
+	return t
 }
 
 type SmallFileBuffer struct {
