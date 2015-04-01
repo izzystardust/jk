@@ -19,11 +19,6 @@ type Buffer interface {
 	Save(name string) error
 }
 
-type Drawer interface {
-	DrawAt(x int, y int, w int, h int)
-	Scroll(by int)
-}
-
 type Line struct {
 	prev     *Line
 	next     *Line
