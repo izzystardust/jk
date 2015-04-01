@@ -46,6 +46,9 @@ func Normal() Mode {
 		v.SetMode((*v.modes)["insert"])
 		return nil
 	}
+	m[keys.Keypress{Key: 'w'}] = func(v *View, count int) error {
+		return v.back.Save("")
+	}
 
 	return Mode{
 		OnEnter:  nil,

@@ -8,6 +8,7 @@ package editor
 import (
 	"fmt"
 	"io/ioutil"
+	"os"
 
 	"github.com/nsf/termbox-go"
 )
@@ -15,6 +16,7 @@ import (
 type Buffer interface {
 	GetLine(lineno int) (*Line, error)
 	Lines() int
+	Save(name string) error
 }
 
 type Drawer interface {
@@ -113,4 +115,28 @@ func (a *SmallFileBuffer) GetLine(x int) (*Line, error) {
 			return nil, fmt.Errorf("line %d does not exist", x)
 		}
 	}
+}
+
+func (a *SmallFileBuffer) Save(name string) error {
+	if name == "" {
+		name = a.Filename
+	}
+
+	f, err := os.Create(name)
+	if err != nil {
+		return err
+	}
+
+	for l := a.FirstLine; l.next != nil; l = l.next {
+		written := 0
+		for written != len(l.Contents) {
+			n, err := f.Write(l.Contents[written:])
+			if err != nil {
+				LogItAll.Println(err)
+			}
+			written += n
+		}
+	}
+
+	return nil
 }
