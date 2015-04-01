@@ -21,7 +21,7 @@ type Mode struct {
 }
 
 // Normal returns a simple normal mode for testing
-func Normal() Mode {
+func Normal(e *Editor) Mode {
 	m := make(map[keys.Keypress]ModeFunc)
 	m[keys.Keypress{Key: 'h'}] = func(v *View, count int) error {
 		v.MoveCursor(-1, 0)
@@ -48,6 +48,13 @@ func Normal() Mode {
 	}
 	m[keys.Keypress{Key: 'w'}] = func(v *View, count int) error {
 		return v.back.Save("")
+	}
+	m[keys.Keypress{Key: '<'}] = func(v *View, count int) error {
+		err := v.ExecUnderCursor(e)
+		if err != nil {
+			LogItAll.Println(err)
+		}
+		return err
 	}
 
 	return Mode{

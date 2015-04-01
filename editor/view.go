@@ -7,6 +7,7 @@ package editor
 import (
 	"fmt"
 	"strings"
+	"unicode"
 
 	"github.com/millere/jk/keys"
 	"github.com/nsf/termbox-go"
@@ -157,4 +158,38 @@ func (a *View) DeleteBackwards() {
 		return
 	}
 	line.DeleteNAt(1, a.C.Column-2)
+}
+
+func (a *View) ExecUnderCursor(e *Editor) error {
+	line, err := a.back.GetLine(a.C.Line)
+	if err != nil {
+		return err
+	}
+
+	var i, j int
+
+	LogItAll.Println("In line:", string(line.Contents), "C:", a.C.Column)
+	for n, c := range string(line.Contents) {
+		if n < a.C.Column && unicode.IsSpace(c) {
+			LogItAll.Println("setting i to", n)
+			i = n + 1
+		}
+		if n >= a.C.Column && unicode.IsSpace(c) {
+			LogItAll.Println("setting j to", n)
+			j = n
+			break
+		}
+	}
+	// if no space after...
+	if j == 0 {
+		j = len(line.Contents)
+	}
+
+	LogItAll.Println("Command:", string(line.Contents[i:j]), "i:", i, "j:", j)
+	toIns, err := e.Interpret("(" + string(line.Contents[i:j]) + ")")
+	if err != nil {
+		return err
+	}
+	line.InsertAt(a.C.Column-1, toIns)
+	return nil
 }
