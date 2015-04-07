@@ -43,7 +43,7 @@ func Normal(e *Editor) Mode {
 		return errors.New("Should quit")
 	}
 	m[keys.Keypress{Key: 't'}] = func(v *View, count int) error {
-		v.SetMode((*v.modes)["insert"])
+		v.SetMode((*v.modes)["insert"], "insert")
 		return nil
 	}
 	m[keys.Keypress{Key: 'w'}] = func(v *View, count int) error {
@@ -69,7 +69,7 @@ func Insert() Mode {
 	m := make(map[keys.Keypress]ModeFunc)
 	m[keys.Keypress{Key: keys.Esc}] = func(v *View, count int) error {
 		v.MoveCursor(-1, 0)
-		v.SetMode((*v.modes)["normal"])
+		v.SetMode((*v.modes)["normal"], "normal")
 		return nil
 	}
 	m[keys.Keypress{Key: keys.Backspace}] = func(v *View, count int) error {

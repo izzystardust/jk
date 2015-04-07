@@ -10,17 +10,19 @@ import (
 	"unicode"
 
 	"github.com/millere/jk/keys"
+	"github.com/millere/window"
 	"github.com/nsf/termbox-go"
 )
 
 type View struct {
-	x, y      int    // (x, y) position of the top left corner of the view
-	w, h      int    // width and height of the view
-	FirstLine int    // index of the first line
-	back      Buffer // the backing buffer being displayed
-	C         Cursor
-	mode      *Mode
-	modes     *map[string]*Mode
+	bufarea    *window.Area
+	statusArea *window.Area
+	FirstLine  int    // index of the first line
+	back       Buffer // the backing buffer being displayed
+	C          Cursor
+	mode       *Mode
+	modeName   string
+	modes      *map[string]*Mode
 }
 
 type Cursor struct {
@@ -33,11 +35,9 @@ func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error
 	if !ok {
 		return View{}, fmt.Errorf("Mode \"%v\" does not exist", m)
 	}
+	bufarea := window.New(x, y, w, h-1)
+	statusarea := window.New(x, y+h-1, w, 1)
 	return View{
-		x:         x,
-		y:         y,
-		w:         w,
-		h:         h,
 		back:      a,
 		FirstLine: 1,
 		C: Cursor{
@@ -45,26 +45,35 @@ func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error
 			Column: 1,
 			color:  termbox.ColorRed,
 		},
-		mode:  mode,
-		modes: &e.modes,
+		mode:       mode,
+		modeName:   m,
+		modes:      &e.modes,
+		bufarea:    bufarea,
+		statusArea: statusarea,
 	}, nil
 }
 
-func (a *View) Draw() {
-	ClearBox(a.x, a.y, a.w, a.h)
-	currentLine, err := a.back.GetLine(a.FirstLine)
+func (v *View) Draw() {
+	v.drawBuffer()
+	v.drawStatusBar()
+}
+
+func (v *View) drawBuffer() {
+	v.bufarea.Clear()
+	currentLine, err := v.back.GetLine(v.FirstLine)
 	if err != nil {
 		// TODO: handle error better
 		panic(err)
 	}
-	for yi := 0; yi < a.h; yi++ {
+	w, h := v.bufarea.Size()
+	for yi := 0; yi < h; yi++ {
 		offset := 0
 		for xi, c := range string(currentLine.Contents) {
-			if xi >= a.w {
+			if xi >= w {
 				break
 			}
 			if c != '\t' {
-				termbox.SetCell(a.x+xi+offset, a.y+yi, c, termbox.ColorDefault, termbox.ColorDefault)
+				v.bufarea.SetCell(xi+offset, yi, c, termbox.ColorDefault, termbox.ColorDefault)
 			} else {
 				offset += 4
 			}
@@ -75,15 +84,22 @@ func (a *View) Draw() {
 			break
 		}
 	}
-	cursorLine, err := a.back.GetLine(a.C.Line)
+	cursorLine, err := v.back.GetLine(v.C.Line)
 	if err != nil {
 		panic(err)
 	}
 	var tabsAtCursor int
-	if a.C.Column-1 >= 0 {
-		tabsAtCursor = strings.Count(string(cursorLine.Contents[:a.C.Column-1]), "\t")
+	if v.C.Column-1 >= 0 {
+		tabsAtCursor = strings.Count(string(cursorLine.Contents[:v.C.Column-1]), "\t")
 	}
-	termbox.SetCursor(a.x+a.C.Column-1+4*tabsAtCursor, a.y+a.C.Line-1) // context required for humor.
+	v.bufarea.SetCursor(v.C.Column-1+4*tabsAtCursor, v.C.Line-1)
+	//termbox.SetCursor(x+v.C.Column-1+4*tabsAtCursor, y+v.C.Line-1) // context required for humor.
+}
+
+func (v *View) drawStatusBar() {
+	v.statusArea.Clear()
+	_, w := v.statusArea.Size()
+	v.statusArea.WriteLine(v.modeName, 0, 0, w, termbox.ColorBlack, termbox.ColorWhite)
 }
 
 // sets the cursor to absolute coordinates in the file
@@ -124,11 +140,12 @@ func inBounds(x, y, w, h, ax, ay int) bool {
 	return ax >= x && ax < w && ay >= y && ay < h
 }
 
-func (a *View) SetMode(m *Mode) {
+func (a *View) SetMode(m *Mode, n string) {
 	if a.mode.OnExit != nil {
 		a.mode.OnExit(a)
 	}
 	a.mode = m
+	a.modeName = n
 	if a.mode.OnEnter != nil {
 		a.mode.OnEnter(a)
 	}
