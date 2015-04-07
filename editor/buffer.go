@@ -9,8 +9,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-
-	"github.com/nsf/termbox-go"
 )
 
 // A Buffer holds text - these methods enable a view to display a buffer
@@ -90,14 +88,6 @@ func (b *SmallFileBuffer) Lines() int {
 		l = l.next
 	}
 	return i + 1
-}
-
-func ClearBox(x int, y int, w int, h int) {
-	for yi := 0; yi < h; yi++ {
-		for xi := 0; xi < w; xi++ {
-			termbox.SetCell(x+xi, y+yi, ' ', termbox.ColorDefault, termbox.ColorDefault)
-		}
-	}
 }
 
 func (a *SmallFileBuffer) GetLine(x int) (*Line, error) {
