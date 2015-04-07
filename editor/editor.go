@@ -11,6 +11,7 @@ import (
 	"os"
 
 	"github.com/millere/jk/keys"
+	"github.com/nsf/termbox-go"
 )
 
 var LogItAll *log.Logger
@@ -55,12 +56,13 @@ func (e *Editor) Do(k keys.Keypress) error {
 }
 
 func (e *Editor) AddFile(filename string) error {
+	w, h := termbox.Size()
 	e.Log("Adding file:", filename)
 	buffer, err := BufferizeFile(filename)
 	if err != nil {
 		return err
 	}
-	view, err := e.ViewWithBuffer(buffer, "normal", 1, 1, 80, 80)
+	view, err := e.ViewWithBuffer(buffer, "normal", 0, 0, w, h)
 	if err != nil {
 		return err
 	}
