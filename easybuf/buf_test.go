@@ -2,12 +2,16 @@ package easybuf
 
 import "testing"
 
-func TestGetLine(t *testing.T) {
-	b := Buffer{
+func getBuff() Buffer {
+	return Buffer{
 		content: []byte(`This is a line
 This is line 2
 This is line 3`),
 	}
+}
+
+func TestGetLine(t *testing.T) {
+	b := getBuff()
 	tests := []string{
 		"This is a line\n",
 		"This is line 2\n",
@@ -29,12 +33,29 @@ This is line 3`),
 	}
 }
 
+func TestLines(t *testing.T) {
+	b := getBuff()
+	if got := b.Lines(); got != 3 {
+		t.Errorf("Got %v, expected 3", got)
+	}
+}
+
+func TestWriteAt(t *testing.T) {
+	// TODO: Write a better test
+	b := getBuff()
+	b.WriteAt([]byte("hello"), 4)
+	expect := "Thishello is a line\nThis is line 2\nThis is line 3"
+	if string(b.content) != expect {
+		t.Errorf("Got %v, expect %v", b.content, expect)
+	}
+}
+
 func TestIndexNth(t *testing.T) {
 	content := []byte("hello, world")
 	cases := []struct {
 		ch     byte
 		n      int
-		expect int
+		expect int64
 	}{
 		{' ', 1, -1},
 		{' ', 0, 6},
@@ -57,7 +78,8 @@ This is line 3`),
 	}
 
 	cases := []struct {
-		line, column, expect int
+		line, column int
+		expect       int64
 	}{
 		{0, 0, 0},
 		{0, 1, 1},

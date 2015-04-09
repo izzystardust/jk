@@ -69,14 +69,17 @@ func (b *Buffer) WriteAt(p []byte, off int64) (int, error) {
 }
 
 // Delete deletes n bytes forwards from off
-func (b *Buffer) Delete(n, off int) {
-
+func (b *Buffer) Delete(n, off int64) {
+	if off+n > int64(len(b.content)) {
+		panic("This needs to be caught")
+	}
+	b.content = append(b.content[:off], b.content[off+n:]...)
 }
 
 // OffsetOf takes a cursor position with origin 0,0 and returns the byte offset
 // of that position in the buffer
-func (b *Buffer) OffsetOf(line, column int) int {
-	var lineOff int
+func (b *Buffer) OffsetOf(line, column int) int64 {
+	var lineOff int64
 	if line > 0 {
 		lineOff = indexNth(b.content, '\n', line-1) + 1
 	}
@@ -85,16 +88,16 @@ func (b *Buffer) OffsetOf(line, column int) int {
 		return -1
 	}
 
-	return lineOff + column
+	return lineOff + int64(column)
 }
 
-func indexNth(s []byte, ch byte, n int) int {
+func indexNth(s []byte, ch byte, n int) int64 {
 	var seen int
 	for i, c := range s {
 		if c == ch {
 
 			if seen == n {
-				return i
+				return int64(i)
 			}
 			seen++
 		}
