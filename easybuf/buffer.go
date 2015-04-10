@@ -91,6 +91,8 @@ func (b *Buffer) OffsetOf(line, column int) int64 {
 	return lineOff + int64(column)
 }
 
+// indexNth indexes the nth instance of ch in s, returning -1 if there is no nth instance
+// This is based on the
 func indexNth(s []byte, ch byte, n int) int64 {
 	var seen int
 	for i, c := range s {
