@@ -10,6 +10,7 @@ import (
 	"unicode"
 
 	"github.com/millere/jk/keys"
+	"github.com/millere/jk/tagbuf"
 	"github.com/millere/window"
 	"github.com/nsf/termbox-go"
 )
@@ -18,8 +19,10 @@ import (
 type View struct {
 	bufarea    *window.Area
 	statusArea *window.Area
-	FirstLine  int    // index of the first line
-	back       Buffer // the backing buffer being displayed
+	tagarea    *window.Area
+	FirstLine  int         // index of the first line
+	back       WriteBuffer // the backing buffer being displayed
+	tag        tagbuf.Buffer
 	C          Cursor
 	mode       *Mode
 	modeName   string
@@ -33,15 +36,17 @@ type Cursor struct {
 }
 
 // ViewWithBuffer creates a new view and area with the given buffer in the editor.
-func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error) {
+func (e *Editor) ViewWithBuffer(a WriteBuffer, m string, x, y, w, h int) (View, error) {
 	mode, ok := e.modes[m]
 	if !ok {
 		return View{}, fmt.Errorf("Mode \"%v\" does not exist", m)
 	}
-	bufarea := window.New(x, y, w, h-1)
+	tagarea := window.New(x, y, w, 1)
+	bufarea := window.New(x, y+1, w, h-1)
 	statusarea := window.New(x, y+h-1, w, 1)
 	return View{
 		back:      a,
+		tag:       tagbuf.New(),
 		FirstLine: 0,
 		C: Cursor{
 			Line:   0,
@@ -52,13 +57,21 @@ func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error
 		modes:      &e.modes,
 		bufarea:    bufarea,
 		statusArea: statusarea,
+		tagarea:    tagarea,
 	}, nil
 }
 
 // Draw draws a View into its area
 func (v *View) Draw() {
+	v.drawTag()
 	v.drawBuffer()
 	v.drawStatusBar()
+}
+
+func (v *View) drawTag() {
+	line := v.tag.Get()
+	_, w := v.tagarea.Size()
+	v.tagarea.WriteLine(line, 0, 0, w, termbox.ColorBlack, termbox.ColorWhite)
 }
 
 func (v *View) drawBuffer() {
