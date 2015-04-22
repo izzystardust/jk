@@ -14,6 +14,7 @@ import (
 	"github.com/nsf/termbox-go"
 )
 
+// A View contains a buffer and knows how to draw it to an area
 type View struct {
 	bufarea    *window.Area
 	statusArea *window.Area
@@ -25,11 +26,13 @@ type View struct {
 	modes      *map[string]*Mode
 }
 
+// A Cursor indicates where the cursor is
+// 0, 0 is the first position in a file
 type Cursor struct {
 	Line, Column int
-	color        termbox.Attribute
 }
 
+// ViewWithBuffer creates a new view and area with the given buffer in the editor.
 func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error) {
 	mode, ok := e.modes[m]
 	if !ok {
@@ -39,11 +42,10 @@ func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error
 	statusarea := window.New(x, y+h-1, w, 1)
 	return View{
 		back:      a,
-		FirstLine: 1,
+		FirstLine: 0,
 		C: Cursor{
-			Line:   1,
-			Column: 1,
-			color:  termbox.ColorRed,
+			Line:   0,
+			Column: 0,
 		},
 		mode:       mode,
 		modeName:   m,
@@ -53,47 +55,36 @@ func (e *Editor) ViewWithBuffer(a Buffer, m string, x, y, w, h int) (View, error
 	}, nil
 }
 
+// Draw draws a View into its area
 func (v *View) Draw() {
 	v.drawBuffer()
 	v.drawStatusBar()
 }
 
 func (v *View) drawBuffer() {
+	tabStop := 4
+	var tabsAtCursor int
 	v.bufarea.Clear()
-	currentLine, err := v.back.GetLine(v.FirstLine)
-	if err != nil {
-		// TODO: handle error better
-		panic(err)
-	}
-	w, h := v.bufarea.Size()
-	for yi := 0; yi < h; yi++ {
-		offset := 0
-		for xi, c := range string(currentLine.Contents) {
-			if xi >= w {
-				break
-			}
-			if c != '\t' {
-				v.bufarea.SetCell(xi+offset, yi, c, termbox.ColorDefault, termbox.ColorDefault)
-			} else {
-				offset += 4
-			}
 
+	_, h := v.bufarea.Size()
+	for l := 0; l < h; l++ {
+		tabs := 0
+		line, err := v.back.GetLine(l + v.FirstLine)
+		if l+v.FirstLine == v.C.Line && v.C.Column-1 >= 0 {
+			tabsAtCursor = strings.Count(line[:v.C.Column-1], "\t")
 		}
-		currentLine = currentLine.next
-		if currentLine == nil {
+		if err != nil {
 			break
 		}
+		for i, c := range line {
+			if c == '\t' {
+				tabs++
+			}
+			v.bufarea.SetCell(i+tabStop*tabs, l, c, termbox.ColorDefault, termbox.ColorDefault)
+		}
 	}
-	cursorLine, err := v.back.GetLine(v.C.Line)
-	if err != nil {
-		panic(err)
-	}
-	var tabsAtCursor int
-	if v.C.Column-1 >= 0 {
-		tabsAtCursor = strings.Count(string(cursorLine.Contents[:v.C.Column-1]), "\t")
-	}
-	v.bufarea.SetCursor(v.C.Column-1+4*tabsAtCursor, v.C.Line-1)
-	//termbox.SetCursor(x+v.C.Column-1+4*tabsAtCursor, y+v.C.Line-1) // context required for humor.
+
+	v.bufarea.SetCursor(v.C.Column+4*tabsAtCursor, v.C.Line)
 }
 
 func (v *View) drawStatusBar() {
@@ -102,96 +93,98 @@ func (v *View) drawStatusBar() {
 	v.statusArea.WriteLine(v.modeName, 0, 0, w, termbox.ColorBlack, termbox.ColorWhite)
 }
 
-// sets the cursor to absolute coordinates in the file
-func (a *View) SetCursor(column, row int) {
-	target, err := a.back.GetLine(row)
-	if err != nil {
-		return
-	}
-
-	// cursor addressing puts row 1, column 1 as the origin
-	origin := 1
-
-	lc := a.back.Lines()
-	// want to be able to go "one past"
-	if inBounds(origin, origin, len(target.Contents)+1, lc, column, row) {
-		a.C.Line = row
-		a.C.Column = column
-	} else if column >= len(target.Contents)+1 && row >= origin && row <= lc {
-		// in this case, we're trying to move past the end of the line
-		// or onto a line that is too short for the requested column
-		a.C.Line = row
-		a.C.Column = len(target.Contents)
+// SetCursor sets the cursor to absolute coordinates in the file
+func (v *View) SetCursor(row, column int) {
+	// if buffer is empty, cursor can only be at 0,0
+	if v.back.Len() == 0 {
+		v.C.Column = 0
+		v.C.Line = 0
 	} else {
-		LogItAll.Printf("Position (%d, %d) out of bounds (%d, %d, %d, %d)\n",
-			column-1, row-1,
-			origin, origin,
-			len(target.Contents)+1, lc,
-		)
+		total := v.back.Lines()
+		if row >= total {
+			row = total - 1
+		}
+		line, err := v.back.GetLine(row)
+		if err != nil {
+			row = v.C.Line
+		}
+		l := len(line)
+		if l > 0 && line[l-1] == '\n' {
+			l -= 1
+		}
+		if column > l {
+			column = l
+		}
+		if column < 0 {
+			column = 0
+		}
+		LogItAll.Printf("Setting cursor to (%d, %d) (total: %d)", v.C.Column, v.C.Line, total)
+		v.C.Column = column
+		v.C.Line = row
 	}
 }
 
-// moves the cursor relative to where it is now
-func (a *View) MoveCursor(dc, dr int) {
-	a.SetCursor(a.C.Column+dc, a.C.Line+dr)
+// MoveCursor moves the cursor relative to where it is now
+func (v *View) MoveCursor(dc, dr int) {
+	v.SetCursor(v.C.Line+dr, v.C.Column+dc)
 }
 
 func inBounds(x, y, w, h, ax, ay int) bool {
 	return ax >= x && ax < w && ay >= y && ay < h
 }
 
-func (a *View) SetMode(m *Mode, n string) {
-	if a.mode.OnExit != nil {
-		a.mode.OnExit(a)
+// SetMode sets a view's mode, so that it handles events per that mode
+func (v *View) SetMode(m *Mode, n string) {
+	if v.mode.OnExit != nil {
+		v.mode.OnExit(v)
 	}
-	a.mode = m
-	a.modeName = n
-	if a.mode.OnEnter != nil {
-		a.mode.OnEnter(a)
+	v.mode = m
+	v.modeName = n
+	if v.mode.OnEnter != nil {
+		v.mode.OnEnter(v)
 	}
 }
 
-func (a *View) Do(k keys.Keypress) error {
-	f, ok := a.mode.EventMap[k]
+// Do tells a view to handle a keypress according to its mode
+func (v *View) Do(k keys.Keypress) error {
+	f, ok := v.mode.EventMap[k]
 	if ok {
-		return f(a, 1)
-	} else {
-		LogItAll.Printf("No function bound to key %v", k)
-		return nil
+		return f(v, 1)
 	}
+	LogItAll.Printf("No function bound to key %v", k)
+	return nil
+
 }
 
-func (a *View) InsertChar(n rune) {
-	line, err := a.back.GetLine(a.C.Line)
-	if err != nil {
-		return
-	}
-	line.InsertAt(a.C.Column-1, []byte{byte(n)})
+// InsertChar inserts the single rune r at the cursor
+func (v *View) InsertChar(c byte) {
+	off := v.back.OffsetOf(v.C.Line, v.C.Column)
+	//LogItAll.Println("Inserting", c, "at", v.C.Line, v.C.Column, "giving an offset of", off)
+	v.back.WriteAt([]byte{c}, off)
 }
 
-func (a *View) DeleteBackwards() {
-	line, err := a.back.GetLine(a.C.Line)
-	if err != nil {
-		return
-	}
-	line.DeleteNAt(1, a.C.Column-2)
+// DeleteBackwards deletes one character backwards
+func (v *View) DeleteBackwards() {
+	offset := v.back.OffsetOf(v.C.Line, v.C.Column)
+	LogItAll.Println("Delete:", v.C.Line, v.C.Column, offset-2)
+	v.back.Delete(1, offset-2)
 }
 
-func (a *View) ExecUnderCursor(e *Editor) error {
-	line, err := a.back.GetLine(a.C.Line)
+func (v *View) ExecUnderCursor(e *Editor) error {
+	line, err := v.back.GetLine(v.C.Line)
 	if err != nil {
 		return err
 	}
 
 	var i, j int
 
-	LogItAll.Println("In line:", string(line.Contents), "C:", a.C.Column)
-	for n, c := range string(line.Contents) {
-		if n < a.C.Column && unicode.IsSpace(c) {
+	LogItAll.Println("In line:", string(line), "C:", v.C.Column)
+	for n, c := range string(line) {
+		if n < v.C.Column && unicode.IsSpace(c) {
 			LogItAll.Println("setting i to", n)
 			i = n + 1
 		}
-		if n >= a.C.Column && unicode.IsSpace(c) {
+		if n >= v.C.Column && unicode.IsSpace(c) {
 			LogItAll.Println("setting j to", n)
 			j = n
 			break
@@ -199,14 +192,16 @@ func (a *View) ExecUnderCursor(e *Editor) error {
 	}
 	// if no space after...
 	if j == 0 {
-		j = len(line.Contents)
+		j = len(line)
 	}
 
-	LogItAll.Println("Command:", string(line.Contents[i:j]), "i:", i, "j:", j)
-	toIns, err := e.Interpret("(" + string(line.Contents[i:j]) + ")")
+	LogItAll.Println("Command:", string(line[i:j]), "i:", i, "j:", j)
+	toIns, err := e.Interpret("(" + string(line[i:j]) + ")")
 	if err != nil {
 		return err
 	}
-	line.InsertAt(a.C.Column-1, toIns)
+
+	v.back.WriteAt(toIns, v.back.OffsetOf(v.C.Line, v.C.Column))
+	//line.InsertAt(v.C.Column-1, toIns)
 	return nil
 }

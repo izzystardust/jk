@@ -26,10 +26,14 @@ func main() {
 	e.RegisterMode("normal", editor.Normal(e))
 	e.RegisterMode("insert", editor.Insert())
 
-	err = e.AddFile(os.Args[1])
-	if err != nil {
-		e.Log(err)
-		return
+	if len(os.Args) > 1 {
+		err = e.AddFile(os.Args[1])
+		if err != nil {
+			e.Log(err)
+			return
+		}
+	} else {
+		e.NewEmptyFile()
 	}
 
 	for {

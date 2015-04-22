@@ -46,7 +46,12 @@ func TestWriteAt(t *testing.T) {
 	b.WriteAt([]byte("hello"), 4)
 	expect := "Thishello is a line\nThis is line 2\nThis is line 3"
 	if string(b.content) != expect {
-		t.Errorf("Got %v, expect %v", b.content, expect)
+		t.Errorf("Got %v, expect %v", string(b.content), expect)
+	}
+	b.WriteAt([]byte("bye"), b.OffsetOf(1, 0))
+	expect = "Thishello is a line\nbyeThis is line 2\nThis is line 3"
+	if string(b.content) != expect {
+		t.Errorf("Got %v, expect %v", string(b.content), expect)
 	}
 }
 

@@ -6,148 +6,31 @@
 package editor
 
 import (
-	"bytes"
-	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
+
+	"github.com/millere/jk/easybuf"
 )
 
 // A Buffer holds text - these methods enable a view to display a buffer
 type Buffer interface {
-	GetLine(lineno int) (*Line, error)
-	Lines() int
-	Save(name string) error
+	Load(from io.Reader, name string) error
+	GetLine(lineno int) (string, error) // The returned line shouldn't be changed
+	Lines() int                         // Returns the number of lines in the buffer
+	Write(name string) error            // Writes the file to the named string
+	Delete(n, off int64)                // Deletes n bytes forwards from off
+	Len() int                           // The number of bytes in the buffer
+	io.WriterAt
+	OffsetOf(line, column int) int64
 }
 
-// A Line is a single line in a linked list of lines that compose a buffer.
-// TODO: Think about using other datastructures?
-type Line struct {
-	prev     *Line
-	next     *Line
-	Contents []byte
-}
-
-func (a *Line) InsertAt(offset int, toInsert []byte) {
-	// do this the naive, allocating way
-	// TODO: faster? less memory intensive way?
-	// TODO: handle inserts with newlines (split toInsert on line breaks, go from there?_
-	splitOnNewlines := bytes.SplitAfter(toInsert, []byte{'\n'})
-
-	for _, val := range splitOnNewlines {
-		//	before := a.Contents[:offset]
-		//	after := make([]byte, len(a.Contents[offset:]))
-		//	copy(after, a.Contents[offset:])
-		if len(val) > 0 && val[len(val)-1] == '\n' {
-			// need to split line
-			l := a.SplitAt(offset)
-			_ = l
-		}
-	}
-}
-
-func (l *Line) DeleteNAt(n int, offset int) {
-	defer func() {
-		if r := recover(); r != nil {
-			LogItAll.Printf("DeleteNAt(%d, %d): %v\n", n, offset, r)
-		}
-	}()
-
-	l.Contents = append(
-		l.Contents[:offset],
-		l.Contents[offset+n:]...,
-	)
-}
-
-func (l *Line) SplitAt(offset int) *Line {
-	t := new(Line)
-	t.next = l.next
-	t.prev = l
-	t.next.prev = t
-	l.next = t
-
-	t.Contents = make([]byte, len(l.Contents[offset:]))
-	copy(t.Contents, l.Contents[offset:])
-
-	return t
-}
-
-type SmallFileBuffer struct {
-	Filename    string
-	FirstLine   *Line
-	CurrentLine *Line
-	LastLine    *Line
-}
-
-func BufferizeFile(filename string) (Buffer, error) {
-	a := new(SmallFileBuffer)
-	a.Filename = filename
-	contents, err := ioutil.ReadFile(filename)
+// BufferizeFile returns a Buffer initialized with a file
+func BufferizeFile(fname string) (Buffer, error) {
+	b := new(easybuf.Buffer)
+	f, err := os.Open(fname)
 	if err != nil {
 		return nil, err
 	}
-	startOfTokenIndex := 0
-	currentLine := new(Line)
-	a.FirstLine = currentLine
-	a.CurrentLine = currentLine
-	for i, c := range contents {
-		if c == '\n' {
-			currentLine.Contents = make([]byte, i+1-startOfTokenIndex)
-			copy(currentLine.Contents, contents[startOfTokenIndex:i+1])
-			startOfTokenIndex = i + 1
-			nextLine := new(Line)
-			currentLine.next = nextLine
-			nextLine.prev = currentLine
-			currentLine = nextLine
-		}
-	}
-	a.LastLine = currentLine
-	return a, nil
-}
-
-// expensive
-func (b *SmallFileBuffer) Lines() int {
-	i := 0
-	for l := b.FirstLine; l != b.LastLine; i++ {
-		l = l.next
-	}
-	return i + 1
-}
-
-func (a *SmallFileBuffer) GetLine(x int) (*Line, error) {
-	currentLine := a.FirstLine
-	i := 1
-	for {
-		if x == i {
-			return currentLine, nil
-		}
-		currentLine = currentLine.next
-		i += 1
-		if currentLine == nil {
-			return nil, fmt.Errorf("line %d does not exist", x)
-		}
-	}
-}
-
-func (a *SmallFileBuffer) Save(name string) error {
-	if name == "" {
-		name = a.Filename
-	}
-
-	f, err := os.Create(name)
-	if err != nil {
-		return err
-	}
-
-	for l := a.FirstLine; l.next != nil; l = l.next {
-		written := 0
-		for written != len(l.Contents) {
-			n, err := f.Write(l.Contents[written:])
-			if err != nil {
-				LogItAll.Println(err)
-			}
-			written += n
-		}
-	}
-
-	return nil
+	err = b.Load(f, fname)
+	return b, err
 }

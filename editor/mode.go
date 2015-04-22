@@ -47,7 +47,7 @@ func Normal(e *Editor) Mode {
 		return nil
 	}
 	m[keys.Keypress{Key: 'w'}] = func(v *View, count int) error {
-		return v.back.Save("")
+		return v.back.Write("")
 	}
 	m[keys.Keypress{Key: '<'}] = func(v *View, count int) error {
 		err := v.ExecUnderCursor(e)
@@ -78,33 +78,21 @@ func Insert() Mode {
 		return nil
 	}
 	m[keys.Keypress{Key: keys.Enter}] = func(v *View, count int) error {
-		//TODO: make it so I can just use the insertChars method of the
-		//      line to do this for me
-		l, err := v.back.GetLine(v.C.Line)
-		if err != nil {
-			LogItAll.Println("WTF?", err)
-			return err
-		}
-		newLine := new(Line)
-		newLine.Contents = []byte{'\n'}
-		newLine.prev = l
-		newLine.next = l.next
-		l.next = newLine
-		newLine.next.prev = newLine
-		v.MoveCursor(0, 1)
+		v.InsertChar('\n')
+		v.SetCursor(v.C.Line+1, 0)
 		return nil
 	}
 
-	insertable := []rune{}
-	for c := rune(0x20); c <= 0x7E; c++ {
+	insertable := []byte{}
+	for c := byte(0x20); c <= 0x7E; c++ {
 		insertable = append(insertable, c)
 	}
 
 	for _, c := range insertable {
-		cc := keys.Key(c)
-		m[keys.Keypress{Key: cc}] = func(v *View, count int) error {
+		cc := c
+		m[keys.Keypress{Key: keys.Key(cc)}] = func(v *View, count int) error {
 			for i := 0; i < count; i++ {
-				v.InsertChar(rune(cc))
+				v.InsertChar(cc)
 				v.MoveCursor(1, 0)
 			}
 			return nil

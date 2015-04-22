@@ -2,10 +2,16 @@ package easybuf
 
 import (
 	"bytes"
-	"errors"
 	"fmt"
 	"io"
+	"log"
+	"os"
 )
+
+func init() {
+	bufLog, _ := os.Create("buflog.txt")
+	log.SetOutput(bufLog)
+}
 
 // A Buffer is a direct array of bytes.
 // Insertion is therefor O(n).
@@ -15,7 +21,8 @@ type Buffer struct {
 }
 
 // Load loads a buffer from a reader
-func (b *Buffer) Load(from io.Reader) error {
+func (b *Buffer) Load(from io.Reader, name string) error {
+	b.fname = name
 	var buf bytes.Buffer
 	n, err := io.Copy(&buf, from)
 
@@ -23,6 +30,8 @@ func (b *Buffer) Load(from io.Reader) error {
 		return fmt.Errorf("buffer.Load: %d bytes read, %v", n, err)
 	}
 	b.content = buf.Bytes()
+	log.Println(buf.Bytes())
+	log.Println(bytes.Count(b.content, []byte{'\n'}))
 	return nil
 
 }
@@ -57,7 +66,22 @@ func (b Buffer) Lines() int {
 }
 
 func (b Buffer) Write(name string) error {
-	return errors.New("easybuf.Buffer.Write: Unimplimented")
+	if name == "" {
+		name = b.fname
+	}
+	out, err := os.Create(name)
+	if err != nil {
+		panic(err.Error() + name)
+	}
+	total := 0
+	for total != len(b.content) {
+		n, err := out.Write(b.content[total:])
+		if err != nil {
+			return err
+		}
+		total += n
+	}
+	return nil
 }
 
 // WriteAt implements the io.WriterAt interface
@@ -72,6 +96,9 @@ func (b *Buffer) WriteAt(p []byte, off int64) (int, error) {
 func (b *Buffer) Delete(n, off int64) {
 	if off+n > int64(len(b.content)) {
 		panic("This needs to be caught")
+	}
+	if off < 0 {
+		panic("Someone did an oops. It was probably you.")
 	}
 	b.content = append(b.content[:off], b.content[off+n:]...)
 }
@@ -105,4 +132,8 @@ func indexNth(s []byte, ch byte, n int) int64 {
 		}
 	}
 	return -1
+}
+
+func (b Buffer) Len() int {
+	return len(b.content)
 }
