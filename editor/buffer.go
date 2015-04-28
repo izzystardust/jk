@@ -18,6 +18,7 @@ type WriteBuffer interface {
 	Write(name string) error // Writes the file to the named string
 	Delete(n, off int64)     // Deletes n bytes forwards from off
 	Load(from io.Reader, name string) error
+	Get() (string, error)
 }
 
 // A Buffer holds text - these methods enable a view to display a buffer

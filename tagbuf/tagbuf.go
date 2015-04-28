@@ -8,21 +8,21 @@ import (
 
 // A Buffer is a single line containing the editable tag
 type Buffer struct {
-	content easybuf.Buffer
+	easybuf.Buffer
 }
 
-func New() Buffer {
+func New() *Buffer {
 	b := Buffer{}
-	b.content.WriteAt([]byte("save quit"), 0)
-	return b
+	b.Buffer.WriteAt([]byte("save quit"), 0)
+	return &b
 }
 
-func (b Buffer) Get() string {
-	l, _ := b.content.GetLine(0)
-	return l
+func (b Buffer) Get() (string, error) {
+	l, _ := b.Buffer.GetLine(0)
+	return l, nil
 }
 
-func (b *Buffer) WriteAt(bs []byte, off int64) {
+func (b *Buffer) WriteAt(bs []byte, off int64) (int, error) {
 	bs_ := bytes.Replace(bs, []byte{'\n'}, []byte{' '}, -1)
-	b.content.WriteAt(bs_, off)
+	return b.Buffer.WriteAt(bs_, off)
 }

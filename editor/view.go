@@ -17,16 +17,21 @@ import (
 
 // A View contains a buffer and knows how to draw it to an area
 type View struct {
-	bufarea    *window.Area
+	parent     *Editor
+	buffer     *subview
+	tag        *subview
 	statusArea *window.Area
-	tagarea    *window.Area
-	FirstLine  int         // index of the first line
-	back       WriteBuffer // the backing buffer being displayed
-	tag        tagbuf.Buffer
-	C          Cursor
 	mode       *Mode
 	modeName   string
 	modes      *map[string]*Mode
+	target     *subview
+}
+
+type subview struct {
+	area      *window.Area
+	C         Cursor
+	back      WriteBuffer
+	firstLine int
 }
 
 // A Cursor indicates where the cursor is
@@ -44,21 +49,26 @@ func (e *Editor) ViewWithBuffer(a WriteBuffer, m string, x, y, w, h int) (View, 
 	tagarea := window.New(x, y, w, 1)
 	bufarea := window.New(x, y+1, w, h-1)
 	statusarea := window.New(x, y+h-1, w, 1)
-	return View{
-		back:      a,
-		tag:       tagbuf.New(),
-		FirstLine: 0,
-		C: Cursor{
-			Line:   0,
-			Column: 0,
+	v := View{
+		parent: e,
+		buffer: &subview{
+			area: bufarea,
+			C:    Cursor{0, 0},
+			back: a,
 		},
+		tag: &subview{
+			area: tagarea,
+			C:    Cursor{0, 0},
+			back: tagbuf.New(),
+		},
+
 		mode:       mode,
 		modeName:   m,
 		modes:      &e.modes,
-		bufarea:    bufarea,
 		statusArea: statusarea,
-		tagarea:    tagarea,
-	}, nil
+	}
+	v.target = v.buffer
+	return v, nil
 }
 
 // Draw draws a View into its area
@@ -69,22 +79,25 @@ func (v *View) Draw() {
 }
 
 func (v *View) drawTag() {
-	line := v.tag.Get()
-	_, w := v.tagarea.Size()
-	v.tagarea.WriteLine(line, 0, 0, w, termbox.ColorBlack, termbox.ColorWhite)
+	line, _ := v.tag.back.Get()
+	_, w := v.tag.area.Size()
+	v.tag.area.WriteLine(line, 0, 0, w, termbox.ColorBlack, termbox.ColorWhite)
+	if v.tag == v.target {
+		v.tag.area.SetCursor(v.tag.C.Column, 0)
+	}
 }
 
 func (v *View) drawBuffer() {
 	tabStop := 4
 	var tabsAtCursor int
-	v.bufarea.Clear()
+	v.buffer.area.Clear()
 
-	_, h := v.bufarea.Size()
+	_, h := v.buffer.area.Size()
 	for l := 0; l < h; l++ {
 		tabs := 0
-		line, err := v.back.GetLine(l + v.FirstLine)
-		if l+v.FirstLine == v.C.Line && v.C.Column-1 >= 0 {
-			tabsAtCursor = strings.Count(line[:v.C.Column-1], "\t")
+		line, err := v.buffer.back.GetLine(l + v.buffer.firstLine)
+		if l+v.buffer.firstLine == v.buffer.C.Line && v.buffer.C.Column-1 >= 0 {
+			tabsAtCursor = strings.Count(line[:v.buffer.C.Column-1], "\t")
 		}
 		if err != nil {
 			break
@@ -93,11 +106,12 @@ func (v *View) drawBuffer() {
 			if c == '\t' {
 				tabs++
 			}
-			v.bufarea.SetCell(i+tabStop*tabs, l, c, termbox.ColorDefault, termbox.ColorDefault)
+			v.buffer.area.SetCell(i+tabStop*tabs, l, c, termbox.ColorDefault, termbox.ColorDefault)
 		}
 	}
-
-	v.bufarea.SetCursor(v.C.Column+4*tabsAtCursor, v.C.Line)
+	if v.buffer == v.target {
+		v.buffer.area.SetCursor(v.buffer.C.Column+4*tabsAtCursor, v.buffer.C.Line)
+	}
 }
 
 func (v *View) drawStatusBar() {
@@ -109,17 +123,17 @@ func (v *View) drawStatusBar() {
 // SetCursor sets the cursor to absolute coordinates in the file
 func (v *View) SetCursor(row, column int) {
 	// if buffer is empty, cursor can only be at 0,0
-	if v.back.Len() == 0 {
-		v.C.Column = 0
-		v.C.Line = 0
+	if v.target.back.Len() == 0 {
+		v.target.C.Column = 0
+		v.target.C.Line = 0
 	} else {
-		total := v.back.Lines()
+		total := v.target.back.Lines()
 		if row >= total {
 			row = total - 1
 		}
-		line, err := v.back.GetLine(row)
+		line, err := v.target.back.GetLine(row)
 		if err != nil {
-			row = v.C.Line
+			row = v.target.C.Line
 		}
 		l := len(line)
 		if l > 0 && line[l-1] == '\n' {
@@ -131,19 +145,15 @@ func (v *View) SetCursor(row, column int) {
 		if column < 0 {
 			column = 0
 		}
-		LogItAll.Printf("Setting cursor to (%d, %d) (total: %d)", v.C.Column, v.C.Line, total)
-		v.C.Column = column
-		v.C.Line = row
+		v.target.C.Column = column
+		v.target.C.Line = row
 	}
+
 }
 
 // MoveCursor moves the cursor relative to where it is now
 func (v *View) MoveCursor(dc, dr int) {
-	v.SetCursor(v.C.Line+dr, v.C.Column+dc)
-}
-
-func inBounds(x, y, w, h, ax, ay int) bool {
-	return ax >= x && ax < w && ay >= y && ay < h
+	v.SetCursor(v.target.C.Line+dr, v.target.C.Column+dc)
 }
 
 // SetMode sets a view's mode, so that it handles events per that mode
@@ -171,33 +181,37 @@ func (v *View) Do(k keys.Keypress) error {
 
 // InsertChar inserts the single rune r at the cursor
 func (v *View) InsertChar(c byte) {
-	off := v.back.OffsetOf(v.C.Line, v.C.Column)
+	off := v.target.back.OffsetOf(v.target.C.Line, v.target.C.Column)
 	//LogItAll.Println("Inserting", c, "at", v.C.Line, v.C.Column, "giving an offset of", off)
-	v.back.WriteAt([]byte{c}, off)
+	v.target.back.WriteAt([]byte{c}, off)
+
 }
 
 // DeleteBackwards deletes one character backwards
 func (v *View) DeleteBackwards() {
-	offset := v.back.OffsetOf(v.C.Line, v.C.Column)
-	LogItAll.Println("Delete:", v.C.Line, v.C.Column, offset-2)
-	v.back.Delete(1, offset-2)
+	offset := v.target.back.OffsetOf(v.target.C.Line, v.target.C.Column)
+	//LogItAll.Println("Delete:", v.C.Line, v.C.Column, offset-2)
+	if offset < 1 {
+		return
+	}
+	v.target.back.Delete(1, offset-2)
 }
 
-func (v *View) ExecUnderCursor(e *Editor) error {
-	line, err := v.back.GetLine(v.C.Line)
+func (v *View) ExecUnderCursor() error {
+	line, err := v.target.back.GetLine(v.target.C.Line)
 	if err != nil {
 		return err
 	}
 
 	var i, j int
 
-	LogItAll.Println("In line:", string(line), "C:", v.C.Column)
+	LogItAll.Println("In line:", string(line), "C:", v.target.C.Column)
 	for n, c := range string(line) {
-		if n < v.C.Column && unicode.IsSpace(c) {
+		if n < v.target.C.Column && unicode.IsSpace(c) {
 			LogItAll.Println("setting i to", n)
 			i = n + 1
 		}
-		if n >= v.C.Column && unicode.IsSpace(c) {
+		if n >= v.target.C.Column && unicode.IsSpace(c) {
 			LogItAll.Println("setting j to", n)
 			j = n
 			break
@@ -209,12 +223,20 @@ func (v *View) ExecUnderCursor(e *Editor) error {
 	}
 
 	LogItAll.Println("Command:", string(line[i:j]), "i:", i, "j:", j)
-	toIns, err := e.Interpret("(" + string(line[i:j]) + ")")
+	toIns, err := v.parent.Interpret("(" + string(line[i:j]) + ")")
 	if err != nil {
 		return err
 	}
 
-	v.back.WriteAt(toIns, v.back.OffsetOf(v.C.Line, v.C.Column))
-	//line.InsertAt(v.C.Column-1, toIns)
+	v.buffer.back.WriteAt(toIns,
+		v.buffer.back.OffsetOf(v.buffer.C.Line, v.buffer.C.Column))
 	return nil
+}
+
+func (v *View) AlternateTag() {
+	if v.target == v.buffer {
+		v.target = v.tag
+	} else {
+		v.target = v.buffer
+	}
 }

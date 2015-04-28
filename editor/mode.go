@@ -47,14 +47,18 @@ func Normal(e *Editor) Mode {
 		return nil
 	}
 	m[keys.Keypress{Key: 'w'}] = func(v *View, count int) error {
-		return v.back.Write("")
+		return v.buffer.back.Write("")
 	}
 	m[keys.Keypress{Key: '<'}] = func(v *View, count int) error {
-		err := v.ExecUnderCursor(e)
+		err := v.ExecUnderCursor()
 		if err != nil {
 			LogItAll.Println(err)
 		}
 		return err
+	}
+	m[keys.Keypress{Key: 'g'}] = func(v *View, count int) error {
+		v.AlternateTag()
+		return nil
 	}
 
 	return Mode{
@@ -79,7 +83,7 @@ func Insert() Mode {
 	}
 	m[keys.Keypress{Key: keys.Enter}] = func(v *View, count int) error {
 		v.InsertChar('\n')
-		v.SetCursor(v.C.Line+1, 0)
+		v.SetCursor(v.target.C.Line+1, 0)
 		return nil
 	}
 

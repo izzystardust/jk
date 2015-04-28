@@ -2,6 +2,7 @@ package easybuf
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -136,4 +137,8 @@ func indexNth(s []byte, ch byte, n int) int64 {
 
 func (b Buffer) Len() int {
 	return len(b.content)
+}
+
+func (b Buffer) Get() (string, error) {
+	return "", errors.New("easybuf.Buffer.Get(): Unimplemented")
 }
