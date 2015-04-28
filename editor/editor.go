@@ -27,6 +27,7 @@ type Editor struct {
 	editorCommands map[string]EditorFunc
 	viewCommands   map[string]ModeFunc
 	log            *log.Logger
+	shouldQuit     bool
 }
 
 // New creates and initializes a new editor
@@ -57,7 +58,11 @@ func (e *Editor) Do(k keys.Keypress) error {
 		e.Log("currentView is nil")
 		return errors.New("currentView is nil")
 	}
-	return e.currentView.Do(k)
+	err := e.currentView.Do(k)
+	if e.shouldQuit {
+		return errors.New("Quitting")
+	}
+	return err
 }
 
 // AddFile opens the file with the given name and gives it a view
@@ -127,5 +132,14 @@ func (e *Editor) buildStandardFuncs() {
 
 		e.log.Println(m)
 		return nil
+	}
+
+	e.viewCommands["quit"] = func(v *View, count int) error {
+		e.Log("Quitting")
+		e.shouldQuit = true
+		return nil
+	}
+	e.viewCommands["save"] = func(v *View, count int) error {
+		return v.buffer.back.Write("")
 	}
 }
