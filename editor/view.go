@@ -197,10 +197,10 @@ func (v *View) DeleteBackwards() {
 	v.target.back.Delete(1, offset-2)
 }
 
-func (v *View) ExecUnderCursor() error {
+func (v *View) resultUnderCursor() ([]byte, error) {
 	line, err := v.target.back.GetLine(v.target.C.Line)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	var i, j int
@@ -223,7 +223,11 @@ func (v *View) ExecUnderCursor() error {
 	}
 
 	LogItAll.Println("Command:", string(line[i:j]), "i:", i, "j:", j)
-	toIns, err := v.parent.Interpret("(" + string(line[i:j]) + ")")
+	return v.parent.Interpret("(" + string(line[i:j]) + ")")
+}
+
+func (v *View) ExecInsertUnderCursor() error {
+	toIns, err := v.resultUnderCursor()
 	if err != nil {
 		return err
 	}

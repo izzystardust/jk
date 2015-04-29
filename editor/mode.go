@@ -5,9 +5,12 @@
 package editor
 
 import (
+	"bytes"
 	"errors"
 
+	"github.com/millere/jk/easybuf"
 	"github.com/millere/jk/keys"
+	"github.com/nsf/termbox-go"
 )
 
 // A ModeFunc is a function that can be executed by a keypress in a mode
@@ -50,11 +53,29 @@ func Normal(e *Editor) Mode {
 		return v.buffer.back.Write("")
 	}
 	m[keys.Keypress{Key: '<'}] = func(v *View, count int) error {
-		err := v.ExecUnderCursor()
+		err := v.ExecInsertUnderCursor()
 		if err != nil {
 			LogItAll.Println(err)
 		}
 		return err
+	}
+	m[keys.Keypress{Key: '>'}] = func(v *View, count int) error {
+		bs, err := v.resultUnderCursor()
+		if err != nil {
+			return err
+		}
+		buf := bytes.NewBuffer(bs)
+		e := v.parent
+		b := &easybuf.Buffer{}
+		b.Load(buf, "")
+		w, h := termbox.Size()
+		vi, _ := e.ViewWithBuffer(b, "normal", 0, 0, w, h)
+		e.addView(&vi)
+		return nil
+	}
+	m[keys.Keypress{Key: ']'}] = func(v *View, count int) error {
+		e.NextView()
+		return nil
 	}
 	m[keys.Keypress{Key: 'g'}] = func(v *View, count int) error {
 		v.AlternateTag()

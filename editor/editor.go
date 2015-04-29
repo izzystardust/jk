@@ -22,7 +22,7 @@ var LogItAll *log.Logger
 // An Editor edits shit
 type Editor struct {
 	views          []*View
-	currentView    *View
+	currentView    int
 	modes          map[string]*Mode
 	editorCommands map[string]EditorFunc
 	viewCommands   map[string]ModeFunc
@@ -35,6 +35,7 @@ func New() *Editor {
 	e := new(Editor)
 	e.modes = make(map[string]*Mode)
 
+	e.currentView = -1
 	e.buildStandardFuncs()
 	e.AddLogFile("log.txt")
 	LogItAll = e.log
@@ -45,20 +46,26 @@ func New() *Editor {
 
 // Draw draws the editor to the screen
 func (e *Editor) Draw() {
-	if e.currentView == nil {
+	if e.currentView == -1 {
 		return
 	}
-	e.currentView.Draw()
+	e.views[e.currentView].Draw()
+}
+
+func (e *Editor) NextView() {
+	if len(e.views) > 1 {
+		e.currentView = (e.currentView + 1) % len(e.views)
+	}
 }
 
 // Do handles events
 func (e *Editor) Do(k keys.Keypress) error {
 	//e.Log("Going to do", k)
-	if e.currentView == nil {
+	if e.currentView == -1 {
 		e.Log("currentView is nil")
 		return errors.New("currentView is nil")
 	}
-	err := e.currentView.Do(k)
+	err := e.views[e.currentView].Do(k)
 	if e.shouldQuit {
 		return errors.New("Quitting")
 	}
@@ -77,6 +84,7 @@ func (e *Editor) AddFile(filename string) error {
 	if err != nil {
 		return err
 	}
+	e.Log("Adding view at", &view)
 	e.addView(&view)
 
 	return nil
@@ -96,8 +104,8 @@ func (e *Editor) NewEmptyFile() error {
 
 func (e *Editor) addView(v *View) {
 	e.views = append(e.views, v)
-	if e.currentView == nil {
-		e.currentView = v
+	if e.currentView == -1 {
+		e.currentView = len(e.views) - 1
 	}
 }
 

@@ -48,7 +48,7 @@ func (e *Editor) InterpretInternal(parts []string) error {
 	if !ok {
 		return fmt.Errorf(`Interpret: "%v": function not found`, parts[0])
 	}
-	fn(e.currentView, 1)
+	fn(e.views[e.currentView], 1)
 
 	return nil
 }
