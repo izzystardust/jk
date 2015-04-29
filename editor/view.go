@@ -28,10 +28,11 @@ type View struct {
 }
 
 type subview struct {
-	area      *window.Area
-	C         Cursor
-	back      WriteBuffer
-	firstLine int
+	area      *window.Area // the area the buffer is rendered to
+	C         Cursor       // the position of the cursor
+	Point     *Cursor      // the position of the point, which when defined sets the selection
+	back      WriteBuffer  // the backing buffer
+	firstLine int          // the first line of the buffer to be displayed, for scrolling
 }
 
 // A Cursor indicates where the cursor is
@@ -110,7 +111,7 @@ func (v *View) drawBuffer() {
 		}
 	}
 	if v.buffer == v.target {
-		v.buffer.area.SetCursor(v.buffer.C.Column+4*tabsAtCursor, v.buffer.C.Line)
+		v.buffer.area.SetCursor(v.buffer.C.Column+4*tabsAtCursor, v.buffer.C.Line-v.buffer.firstLine)
 	}
 }
 
@@ -152,6 +153,26 @@ func (v *View) SetCursor(row, column int) {
 		}
 		v.target.C.Column = column
 		v.target.C.Line = row
+	}
+	h, _ := v.target.area.Size()
+	h = h - 1
+	if v.target.C.Line < v.target.firstLine {
+		LogItAll.Println("Scroll up. Cursor at line",
+			v.target.C.Line,
+			"firstLine:", v.target.firstLine,
+			"h:", h)
+		v.target.firstLine = v.target.C.Line
+	} else if v.target.C.Line >= v.target.firstLine+h-1 {
+		LogItAll.Println("Scroll Down. Cursor at line",
+			v.target.C.Line,
+			"firstLine:", v.target.firstLine,
+			"h:", h)
+		v.target.firstLine = v.target.C.Line - h + 1
+	} else {
+		LogItAll.Println("Not scrolling. Cursor at line",
+			v.target.C.Line,
+			"firstLine:", v.target.firstLine,
+			"h:", h)
 	}
 
 }
@@ -199,7 +220,7 @@ func (v *View) DeleteBackwards() {
 	if offset < 1 {
 		return
 	}
-	v.target.back.Delete(1, offset-2)
+	v.target.back.Delete(1, offset-1)
 }
 
 func (v *View) resultUnderCursor() ([]byte, error) {
