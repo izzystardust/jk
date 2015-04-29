@@ -117,7 +117,12 @@ func (v *View) drawBuffer() {
 func (v *View) drawStatusBar() {
 	v.statusArea.Clear()
 	_, w := v.statusArea.Size()
-	v.statusArea.WriteLine(v.modeName, 0, 0, w, termbox.ColorBlack, termbox.ColorWhite)
+	modeline := fmt.Sprintf("%s [buffer %d/%d]",
+		v.modeName,
+		v.parent.currentView+1,
+		len(v.parent.views),
+	)
+	v.statusArea.WriteLine(modeline, 0, 0, w, termbox.ColorBlack, termbox.ColorWhite)
 }
 
 // SetCursor sets the cursor to absolute coordinates in the file
