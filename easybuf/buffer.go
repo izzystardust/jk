@@ -142,3 +142,7 @@ func (b Buffer) Len() int {
 func (b Buffer) Get() (string, error) {
 	return "", errors.New("easybuf.Buffer.Get(): Unimplemented")
 }
+
+func (b Buffer) FromTo(off1, off2 int64) (string, error) {
+	return string(b.content[off1 : off2+1]), nil
+}

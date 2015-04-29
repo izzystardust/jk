@@ -107,11 +107,18 @@ func (v *View) drawBuffer() {
 			if c == '\t' {
 				tabs++
 			}
-			v.buffer.area.SetCell(i+tabStop*tabs, l, c, termbox.ColorDefault, termbox.ColorDefault)
+			bg := termbox.ColorDefault
+			fg := termbox.ColorDefault
+			if v.buffer.InRegion(l+v.buffer.firstLine, i) {
+				bg = termbox.ColorRed
+			}
+			v.buffer.area.SetCell(i+tabStop*tabs,
+				l, c, fg, bg)
 		}
 	}
 	if v.buffer == v.target {
-		v.buffer.area.SetCursor(v.buffer.C.Column+4*tabsAtCursor, v.buffer.C.Line-v.buffer.firstLine)
+		v.buffer.area.SetCursor(v.buffer.C.Column+4*tabsAtCursor,
+			v.buffer.C.Line-v.buffer.firstLine)
 	}
 }
 
@@ -157,24 +164,10 @@ func (v *View) SetCursor(row, column int) {
 	h, _ := v.target.area.Size()
 	h = h - 1
 	if v.target.C.Line < v.target.firstLine {
-		LogItAll.Println("Scroll up. Cursor at line",
-			v.target.C.Line,
-			"firstLine:", v.target.firstLine,
-			"h:", h)
 		v.target.firstLine = v.target.C.Line
 	} else if v.target.C.Line >= v.target.firstLine+h-1 {
-		LogItAll.Println("Scroll Down. Cursor at line",
-			v.target.C.Line,
-			"firstLine:", v.target.firstLine,
-			"h:", h)
 		v.target.firstLine = v.target.C.Line - h + 1
-	} else {
-		LogItAll.Println("Not scrolling. Cursor at line",
-			v.target.C.Line,
-			"firstLine:", v.target.firstLine,
-			"h:", h)
 	}
-
 }
 
 // MoveCursor moves the cursor relative to where it is now
@@ -229,6 +222,12 @@ func (v *View) resultUnderCursor() ([]byte, error) {
 		return nil, err
 	}
 
+	stdin := ""
+	if v.buffer.Point != nil {
+		off1 := v.buffer.back.OffsetOf(v.buffer.Point.Line, v.buffer.Point.Column)
+		off2 := v.buffer.back.OffsetOf(v.buffer.C.Line, v.buffer.C.Column)
+		stdin, _ = v.buffer.back.FromTo(off1, off2)
+	}
 	var i, j int
 
 	LogItAll.Println("In line:", string(line), "C:", v.target.C.Column)
@@ -249,7 +248,8 @@ func (v *View) resultUnderCursor() ([]byte, error) {
 	}
 
 	LogItAll.Println("Command:", string(line[i:j]), "i:", i, "j:", j)
-	return v.parent.Interpret("(" + string(line[i:j]) + ")")
+	LogItAll.Println("stdin:", stdin)
+	return v.parent.Interpret("("+string(line[i:j])+")", stdin)
 }
 
 func (v *View) ExecInsertUnderCursor() error {
@@ -261,6 +261,34 @@ func (v *View) ExecInsertUnderCursor() error {
 	v.buffer.back.WriteAt(toIns,
 		v.buffer.back.OffsetOf(v.buffer.C.Line, v.buffer.C.Column))
 	return nil
+}
+
+func (v *View) TogglePoint() {
+	if v.target.Point == nil {
+		v.SetPoint()
+	} else {
+		v.ClearPoint()
+	}
+}
+
+func (v *View) SetPoint() {
+	c := v.target.C
+	v.target.Point = &c
+}
+
+func (v *View) ClearPoint() {
+	v.target.Point = nil
+}
+
+// InRegion returns true if
+func (s *subview) InRegion(l, c int) bool {
+	if s.Point == nil {
+		return false
+	}
+	m := s.back.OffsetOf(s.Point.Line, s.Point.Column)
+	o := s.back.OffsetOf(s.C.Line, s.C.Column)
+	i := s.back.OffsetOf(l, c)
+	return m <= i && i <= o
 }
 
 func (v *View) AlternateTag() {

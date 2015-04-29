@@ -1,6 +1,7 @@
 package editor
 
 import (
+	"bytes"
 	"errors"
 	"fmt"
 	"os/exec"
@@ -12,7 +13,7 @@ import (
 func (e *Editor) RunInterpreter() {
 }
 
-func (e *Editor) Interpret(sexp string) ([]byte, error) {
+func (e *Editor) Interpret(sexp, in string) ([]byte, error) {
 	// make neat and readable
 	sexp = strings.TrimSpace(sexp)
 	fixws := func(r rune) rune {
@@ -39,7 +40,7 @@ func (e *Editor) Interpret(sexp string) ([]byte, error) {
 		return nil, nil
 	}
 
-	ans, err := runExternal(parts)
+	ans, err := runExternal(parts, in)
 	return ans, err
 }
 
@@ -53,7 +54,7 @@ func (e *Editor) InterpretInternal(parts []string) error {
 	return nil
 }
 
-func runExternal(parts []string) ([]byte, error) {
+func runExternal(parts []string, in string) ([]byte, error) {
 	var cmd *exec.Cmd
 	switch len(parts) {
 	case 0:
@@ -64,5 +65,6 @@ func runExternal(parts []string) ([]byte, error) {
 		cmd = exec.Command(parts[0], parts[1:]...)
 
 	}
+	cmd.Stdin = bytes.NewBuffer([]byte(in))
 	return cmd.Output()
 }

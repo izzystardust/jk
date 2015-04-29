@@ -52,6 +52,10 @@ func Normal(e *Editor) Mode {
 	m[keys.Keypress{Key: 'w'}] = func(v *View, count int) error {
 		return v.buffer.back.Write("")
 	}
+	m[keys.Keypress{Key: 'v'}] = func(v *View, count int) error {
+		v.TogglePoint()
+		return nil
+	}
 	m[keys.Keypress{Key: '<'}] = func(v *View, count int) error {
 		err := v.ExecInsertUnderCursor()
 		if err != nil {
